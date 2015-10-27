@@ -19,7 +19,8 @@
 		<div class="main">
 			<div id="map" class="map"><div id="popup"></div></div>
 			<div class="">
-				<h4>Status: <span id="status">Disconnected</span></h4>	
+				<h4>Status: <span id="status">Disconnected</span></h4>
+				<button onclick="add_layer()">Add</button>
 				<ul id="messages"></ul>
 			</div>
 		</div>
@@ -45,6 +46,22 @@
 		});
 
 		connect_api();
+
+		var map = new ol.Map({
+			target: 'map',
+			layers: [
+				new ol.layer.Tile({source: new ol.source.OSM()}),
+				// vectorLayer
+			],
+			view: new ol.View({
+				center: [0, 0],
+				zoom: 1
+			})
+		});
+
+
+//  Start Marker & Trail Layers
+
 
 		var vectorSource = new ol.source.Vector({});
 
@@ -76,18 +93,12 @@
 			style: styleFunction
 		});
 
-		var map = new ol.Map({
-			target: 'map',
-			layers: [
-				new ol.layer.Tile({source: new ol.source.OSM()}),
-				vectorLayer
-			],
-			view: new ol.View({
-				center: [0, 0],
-				zoom: 1
-			})
-		});
 
+		function add_layer(){
+			map.addLayer(vectorLayer);
+		}
+
+		map.addLayer(vectorLayer);
 
 //  Start PopPop
 		var element = $('#popup');
