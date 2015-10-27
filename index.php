@@ -4,6 +4,7 @@
 	<title>Get PG NOTIFY</title>
 	<link rel="stylesheet" type="text/css" href="bower_components/bower-ol3/css/ol.css">
 	<link rel="stylesheet" type="text/css" href="bower_components/bootstrap/dist/css/bootstrap.css">
+	<link rel="stylesheet" type="text/css" href="bower_components/bootstrap/dist/css/bootstrap-theme.css">
 	<link rel="stylesheet" type="text/css" href="css/style.css">	
 	<style>
 	  .map {
@@ -32,11 +33,11 @@
 	<script src="bower_components/bower-ol3/build/ol.js"></script>
 	<script src="http://localhost:3000/socket.io/socket.io.js"></script>
 	<script>
+
+//  Map init
+
 		var socket = io.connect('http://localhost:3000');
 		socket.on('pg notify', function(msg){
-			// $('#messages').append($('<li>').text(msg.payload));
-			// add_marker(msg);
-			clear_marker();
 			connect_api();
 
 		}).on('connect', function() {
@@ -62,41 +63,42 @@
 
 //  Start Marker & Trail Layers
 
-
 		var vectorSource = new ol.source.Vector({});
+		var style_cache = {};
 
-		var styles = {
-			'LineString': [new ol.style.Style({
-				stroke: new ol.style.Stroke({
-					color: getRandomColor(),
-					width: 0.5,
-					lineDash: [4,4]
-				})
-			})],
-			'Point': [new ol.style.Style({
-				image: new ol.style.Icon(/** @type {olx.style.IconOptions} */ ({
-					anchor: [19, 32],
-					anchorXUnits: 'pixels',
-					anchorYUnits: 'pixels',
-					opacity: 0.75,
-					src: 'images/marker.png'
-				}))
-			})],
-		};
-
-		var styleFunction = function(feature, resolution) {
-		  return styles[feature.getGeometry().getType()];
-		};
+		function get_style(feature, resolution){
+			var type = feature.getGeometry().getType();
+			switch(type){
+				case 'LineString':
+					style_cache[type] = new ol.style.Style({
+						stroke: new ol.style.Stroke({
+							color: feature.get('color'),
+							width: 0.5,
+							lineDash: [2,2]
+						})
+					});
+				break;
+				case 'Point':
+					style_cache[type] = new ol.style.Style({
+						image: new ol.style.Icon(/** @type {olx.style.IconOptions} */ ({
+							anchor: [19, 32],
+							anchorXUnits: 'pixels',
+							anchorYUnits: 'pixels',
+							opacity: 0.8,
+							src: 'images/marker.png',
+							// rotation: 0
+							snapToPixel: true,
+						}))
+					});
+				break;
+			}
+			return [style_cache[type]];
+		}
 
 		var vectorLayer = new ol.layer.Vector({
 			source: vectorSource,
-			style: styleFunction
+			style: get_style
 		});
-
-
-		function add_layer(){
-			map.addLayer(vectorLayer);
-		}
 
 		map.addLayer(vectorLayer);
 
@@ -104,8 +106,9 @@
 		var element = $('#popup');
 		var popup = new ol.Overlay({
 			element: element,
-			positioning: 'top-center',
-			stopEvent: false
+			// positioning: 'top-center',
+			offset : [-38,-74],
+			stopEvent: true
 		});
 		map.addOverlay(popup);
 
@@ -125,11 +128,11 @@
 					title: 'TITLE',
 					content: 'CONTENT'
 				}).popover('show');
-				$('#map .popover-title').html(feature.get('name'));
+				$('#map .popover-title').html('ID: '+feature.get('name'));
 				$('#map .popover-content').html(
-					'<div>Vessel ID: ' + feature.get('id') 
-					+ '</div><div>Lat: ' + feature.get('lat').toFixed(8)
-					+ '</div><div>Lng: ' + feature.get('lng').toFixed(8) + '</div>'
+					'<div><b>Vessel ID: </b>' + feature.get('id') 
+					+ '</div><div><b>Lat: </b>' + feature.get('lat').toFixed(8)
+					+ '</div><div><b>Lng: </b>' + feature.get('lng').toFixed(8) + '</div>'
 				);				
 			} else {
 				element.popover('destroy');
@@ -137,13 +140,16 @@
 		});
 
 
+//  Methods
+
 		function connect_api(){
 			$.ajax({
 				url: 'http://localhost:8080/test/socket-io/get_pgnotify/gettrails.php'
 			}).done(function(data){
+				vectorSource.clear();
 				var vessels = $.parseJSON(data);
 				$.each(vessels, function(k,v){
-					// add_marker(v);
+					add_marker(v);
 					add_trails(v);
 				});
 			});
@@ -152,7 +158,6 @@
 
 		function format_location(data){
 			var temp = data;
-			console.log(temp.length)
 			if(typeof temp.length == 'undefined'){
 				$.each(temp.trails, function(x,y){
 					temp['trails'][x] = format_geometry(y[0], y[1])
@@ -188,27 +193,20 @@
 
 
 		function add_trails(data){
-			add_marker(data);
 			var temp = format_location(data);
 			var trails = new ol.Feature({
-				geometry: new ol.geom.LineString(temp.trails, 'XYZM')
+				geometry: new ol.geom.LineString(temp.trails, 'XYZM'),
+				name: data.name,
+				id: data.name,
+				color: 'rgba('+get_color()+', 0.8)'
 			});
 			vectorSource.addFeature(trails);
 		}
 
 
-		function clear_marker(){
-			vectorSource.clear();
-		}
 
-
-		function getRandomColor() {
-			var letters = '0123456789ABCDEF'.split('');
-			var color = '#';
-			for (var i = 0; i < 6; i++ ) {
-				color += letters[Math.floor(Math.random() * 16)];
-			}
-			return color;
+		function get_color() {
+			return (Math.floor(Math.random() * 256)) + ',' + (Math.floor(Math.random() * 256)) + ',' + (Math.floor(Math.random() * 256));
 		}		
 
 		// not working
