@@ -68,6 +68,7 @@
 
 		function get_style(feature, resolution){
 			var type = feature.getGeometry().getType();
+
 			switch(type){
 				case 'LineString':
 					style_cache[type] = new ol.style.Style({
@@ -79,17 +80,54 @@
 					});
 				break;
 				case 'Point':
-					style_cache[type] = new ol.style.Style({
-						image: new ol.style.Icon(/** @type {olx.style.IconOptions} */ ({
-							anchor: [19, 32],
-							anchorXUnits: 'pixels',
-							anchorYUnits: 'pixels',
-							opacity: 0.8,
-							src: 'images/marker.png',
-							// rotation: 0
-							snapToPixel: true,
-						}))
-					});
+					var src = (feature.get('type') === 'Point')? 'images/marker.png' : '';
+
+					if(feature.get('type') === 'Point'){
+						style_cache[type] = new ol.style.Style({
+							image: new ol.style.Icon(/** @type {olx.style.IconOptions} */ ({
+								anchor: [19, 32],
+								anchorXUnits: 'pixels',
+								anchorYUnits: 'pixels',
+								opacity: 0.8,
+								src: 'images/marker.png',
+								// rotation: 0
+								snapToPixel: true,
+							}))
+						});						
+					} else {
+						var fill = new ol.style.Fill({
+							color: 'rgba(255,255,255,0.3)'
+						});
+						var stroke = new ol.style.Stroke({
+							color: feature.get('color'),
+							width: 0.5,
+							lineDash: [2,2]
+						});
+						style_cache[type] = new ol.style.Style({
+							image: new ol.style.Circle({
+								fill: fill,
+								stroke: stroke,
+								radius: 4
+							}),
+							fill: fill,
+							stroke: stroke
+						});
+					}
+
+
+
+
+						// style_cache[type] = new ol.style.Style({
+						// 	image: new ol.style.Icon(/** @type {olx.style.IconOptions} */ ({
+						// 		anchor: [19, 32],
+						// 		anchorXUnits: 'pixels',
+						// 		anchorYUnits: 'pixels',
+						// 		opacity: 0.8,
+						// 		src: 'images/marker.png',
+						// 		// rotation: 0
+						// 		snapToPixel: true,
+						// 	}))
+						// });
 				break;
 			}
 			return [style_cache[type]];
@@ -111,6 +149,7 @@
 			stopEvent: true
 		});
 		map.addOverlay(popup);
+
 
 		map.on('click', function(evt){
 			var feature = map.forEachFeatureAtPixel(evt.pixel, function(feature, layer){
@@ -149,8 +188,9 @@
 				vectorSource.clear();
 				var vessels = $.parseJSON(data);
 				$.each(vessels, function(k,v){
-					add_marker(v);
-					add_trails(v);
+					var color = get_color();
+					add_point(v, color);
+					add_trails(v, color);
 				});
 			});
 		}
@@ -178,27 +218,34 @@
 		}
 
 
-		function add_marker(data){
-			var marker = new ol.Feature({
-				geometry: new ol.geom.Point(
-					ol.proj.transform([parseFloat(data.trails[0][0]), parseFloat(data.trails[0][1])], 'EPSG:4326', 'EPSG:3857')
-					),
-				name: data.name,
-				id: data.name,
-				lat: parseFloat(data.trails[0][0]),
-				lng: parseFloat(data.trails[0][1])
+		function add_point(data, color){
+			$.each(data.trails, function(k,v){
+				var lat = parseFloat(data.trails[k][0]), lng = parseFloat(data.trails[k][1]);
+				var type = (k === 0)? 'Point': 'Joint';
+
+				var marker = new ol.Feature({
+					geometry: new ol.geom.Point(
+						ol.proj.transform([lat, lng], 'EPSG:4326', 'EPSG:3857')
+						),
+					name: data.name,
+					id: data.name,
+					lat: lat,
+					lng: lng,
+					type: type,
+					color: 'rgba('+color+', 0.8)'
+				});
+				vectorSource.addFeature(marker);
 			});
-			vectorSource.addFeature(marker);
 		}
 
 
-		function add_trails(data){
+		function add_trails(data, color){
 			var temp = format_location(data);
 			var trails = new ol.Feature({
 				geometry: new ol.geom.LineString(temp.trails, 'XYZM'),
 				name: data.name,
 				id: data.name,
-				color: 'rgba('+get_color()+', 0.8)'
+				color: 'rgba('+color+', 0.8)'
 			});
 			vectorSource.addFeature(trails);
 		}
