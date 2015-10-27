@@ -1,0 +1,57 @@
+-- Table: foo
+
+-- DROP TABLE foo;
+
+CREATE TABLE foo
+(
+  id serial NOT NULL,
+  name character varying,
+  lat numeric,
+  lng numeric,
+  CONSTRAINT foo_pkey PRIMARY KEY (id)
+)
+WITH (
+  OIDS=FALSE
+);
+ALTER TABLE foo
+  OWNER TO postgres;
+
+-- Trigger: watched_table_trigger on foo
+
+-- DROP TRIGGER watched_table_trigger ON foo;
+
+CREATE TRIGGER watched_table_trigger
+  AFTER INSERT
+  ON foo
+  FOR EACH ROW
+  EXECUTE PROCEDURE notify_trigger();
+
+
+-- Trigger: watched_table_trigger on foo
+
+-- DROP TRIGGER watched_table_trigger ON foo;
+
+CREATE TRIGGER watched_table_trigger
+  AFTER INSERT
+  ON foo
+  FOR EACH ROW
+  EXECUTE PROCEDURE notify_trigger();
+
+
+-- Function: notify_trigger()
+
+-- DROP FUNCTION notify_trigger();
+
+CREATE OR REPLACE FUNCTION notify_trigger()
+  RETURNS trigger AS
+$BODY$
+DECLARE
+BEGIN
+PERFORM pg_notify('trailupdates', TG_TABLE_NAME || ',id,' || NEW.id );
+RETURN new;
+END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100;
+ALTER FUNCTION notify_trigger()
+  OWNER TO postgres;

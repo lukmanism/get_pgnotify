@@ -1,0 +1,21 @@
+{
+  "name": "bower-ol3",
+  "version": "3.4.0",
+  "description": "Open Layers 3",
+  "main": [
+    "build/ol.js",
+    "css/ol.css"
+  ],
+  "ignore": [],
+  "homepage": "https://github.com/Yann29/bower-ol3",
+  "_release": "3.4.0",
+  "_resolution": {
+    "type": "version",
+    "tag": "v3.4.0",
+    "commit": "04c6f136815636e7422077aacb8ac6f964678fa2"
+  },
+  "_source": "git://github.com/Yann29/bower-ol3.git",
+  "_target": "~3.4.0",
+  "_originalSource": "ol3",
+  "_direct": true
+}

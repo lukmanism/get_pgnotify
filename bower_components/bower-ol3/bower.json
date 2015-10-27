@@ -1,0 +1,11 @@
+{
+  "name": "bower-ol3",
+  "version": "3.4.0",
+  "description": "Open Layers 3",
+  "main": [
+	"build/ol.js",
+	"css/ol.css"
+	],
+  "ignore": [
+  ]	
+}
