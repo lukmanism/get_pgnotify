@@ -22,7 +22,7 @@
 			FROM foo
 			)
 			foo
-			WHERE x <=5';
+			WHERE x <= 3';
 	$result = pg_query($query) or die('Query failed: ' . pg_last_error());
 	$trails = pg_fetch_all($result);
 
