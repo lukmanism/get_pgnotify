@@ -4,21 +4,27 @@
 	    or die('Could not connect: ' . pg_last_error());
 
 	// Performing SQL query
-	$query = 'SELECT DISTINCT name FROM  foo';
+	$query = 'SELECT DISTINCT vessel_id, name FROM  foo';
 	$result = pg_query($query) or die('Query failed: ' . pg_last_error());
 
 	$get_vessel = pg_fetch_all($result);
 
 	$vessels = [];
 	foreach ($get_vessel as $key => $v) {
-		array_push($vessels, ['name' => $v['name'], 'trails' => []]);
+		array_push($vessels, [
+			'vessel_id' => $v['vessel_id'], 
+			'name' => $v['name'], 
+			'trails' => [],
+			'attr' => []
+			]
+		);
 	}
 
 
 
-	$query = 'SELECT id, name, lat, lng FROM
-			(SELECT id, name, lat, lng, 
-			ROW_NUMBER() OVER(PARTITION BY name ORDER BY id DESC) as x
+	$query = 'SELECT id, vessel_id, lat, lng, speed, cmg FROM
+			(SELECT id, vessel_id, lat, lng, speed, cmg,
+			ROW_NUMBER() OVER(PARTITION BY vessel_id ORDER BY id DESC) as x
 			FROM foo
 			)
 			foo
@@ -28,8 +34,9 @@
 
 	foreach ($vessels as $key => $value) {
 		foreach ($trails as $k => $v) {
-			if($v['name'] == $value['name']){
+			if($v['vessel_id'] == $value['vessel_id']){
 				array_push($vessels[$key]['trails'], [$v['lat'], $v['lng']]);
+				array_push($vessels[$key]['attr'], [$v['speed'], $v['cmg']]);
 			}
 		}
 	}
