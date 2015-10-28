@@ -8,25 +8,25 @@
 	<link rel="stylesheet" type="text/css" href="css/style.css">	
 	<style>
 	  .map {
-		height: 400px;
+		height: 600px;
 		width: 100%;
 	  }
 	</style>
 </head>
 <body>
 
-	<div class="container">
+	<!-- <div class="container"> -->
 		<header></header>
-		<div class="main">
+		<!-- <div class="main"> -->
 			<div id="map" class="map"><div id="popup"></div></div>
 			<div class="">
 				<h4>Status: <span id="status">Disconnected</span></h4>
 				<button onclick="add_layer()">Add</button>
 				<ul id="messages"></ul>
 			</div>
-		</div>
+		<!-- </div> -->
 		<footer></footer>
-	</div>
+	<!-- </div> -->
 
 	<script src="bower_components/jquery/dist/jquery.js"></script>
 	<script src="bower_components/bootstrap/dist/js/bootstrap.js"></script>
@@ -51,12 +51,12 @@
 		var map = new ol.Map({
 			target: 'map',
 			layers: [
-				new ol.layer.Tile({source: new ol.source.OSM()}),
-				// vectorLayer
+				new ol.layer.Tile({source: new ol.source.OSM()})
 			],
 			view: new ol.View({
-				center: [0, 0],
-				zoom: 1
+				center: [11919200.410238788, 651686.8716054037],
+				zoom: 6,
+				projection: 'EPSG:3857'
 			})
 		});
 
@@ -95,39 +95,25 @@
 							}))
 						});						
 					} else {
-						var fill = new ol.style.Fill({
-							color: 'rgba(255,255,255,0.3)'
-						});
-						var stroke = new ol.style.Stroke({
-							color: feature.get('color'),
-							width: 0.5,
-							lineDash: [2,2]
-						});
-						style_cache[type] = new ol.style.Style({
-							image: new ol.style.Circle({
-								fill: fill,
-								stroke: stroke,
-								radius: 4
-							}),
-							fill: fill,
-							stroke: stroke
-						});
-					}
-
-
-
-
-						// style_cache[type] = new ol.style.Style({
-						// 	image: new ol.style.Icon(/** @type {olx.style.IconOptions} */ ({
-						// 		anchor: [19, 32],
-						// 		anchorXUnits: 'pixels',
-						// 		anchorYUnits: 'pixels',
-						// 		opacity: 0.8,
-						// 		src: 'images/marker.png',
-						// 		// rotation: 0
-						// 		snapToPixel: true,
-						// 	}))
-						// });
+						var geometry = [feature.get('lat'),feature.get('lng')];
+							var fill = new ol.style.Fill({
+								color: 'rgba(255,255,255,0.3)'
+							});
+							var stroke = new ol.style.Stroke({
+								color: feature.get('color'),
+								width: 0.5
+							});
+							style_cache[type] = new ol.style.Style({
+								image: new ol.style.RegularShape({
+									fill: fill,
+									stroke: stroke,
+									points: 3,
+									radius: 6,
+									rotation: feature.get('cmg'),
+									angle: 0
+								})
+							});
+						}
 				break;
 			}
 			return [style_cache[type]];
@@ -141,11 +127,12 @@
 		map.addLayer(vectorLayer);
 
 //  Start PopPop
+
 		var element = $('#popup');
 		var popup = new ol.Overlay({
 			element: element,
 			// positioning: 'top-center',
-			offset : [-38,-74],
+			offset : [8,-20],
 			stopEvent: true
 		});
 		map.addOverlay(popup);
@@ -162,16 +149,16 @@
 				popup.setPosition(coord);
 				element.popover({
 					trigger: 'manual',
-					placement: 'top',
+					placement: 'right',
 					html: true,
 					title: 'TITLE',
 					content: 'CONTENT'
 				}).popover('show');
-				$('#map .popover-title').html('ID: '+feature.get('name'));
+				$('#map .popover-title').html('ID: '+feature.get('vessel_id'));
 				$('#map .popover-content').html(
-					'<div><b>Vessel ID: </b>' + feature.get('id') 
-					+ '</div><div><b>Lat: </b>' + feature.get('lat').toFixed(8)
-					+ '</div><div><b>Lng: </b>' + feature.get('lng').toFixed(8) + '</div>'
+					'<div><b>Vessel ID: </b>' + feature.get('vessel_id') 
+					+ '</div><div><b>Lat: </b>' + parseFloat(feature.get('lat')).toFixed(8)
+					+ '</div><div><b>Lng: </b>' + parseFloat(feature.get('lng')).toFixed(8) + '</div>'
 				);				
 			} else {
 				element.popover('destroy');
@@ -200,12 +187,12 @@
 			var temp = data;
 			if(typeof temp.length == 'undefined'){
 				$.each(temp.trails, function(x,y){
-					temp['trails'][x] = format_geometry(y[0], y[1])
+					temp['trails'][x] = ol.proj.fromLonLat([parseFloat(y[1]), parseFloat(y[0])]);
 				});
 			} else {
 				$.each(temp, function(k,v){
 					$.each(v.trails, function(x,y){
-						temp[k]['trails'][x] = format_geometry(y[0], y[1])
+						temp[k]['trails'][x] = ol.proj.fromLonLat([parseFloat(y[1]), parseFloat(y[0])]);
 					});
 				});
 			}
@@ -213,26 +200,22 @@
 		}
 
 
-		function format_geometry(a,b){
-			return ol.proj.transform([parseFloat(a), parseFloat(b)], 'EPSG:4326', 'EPSG:3857');
-		}
-
 
 		function add_point(data, color){
 			$.each(data.trails, function(k,v){
 				var lat = parseFloat(data.trails[k][0]), lng = parseFloat(data.trails[k][1]);
 				var type = (k === 0)? 'Point': 'Joint';
-
 				var marker = new ol.Feature({
 					geometry: new ol.geom.Point(
-						ol.proj.transform([lat, lng], 'EPSG:4326', 'EPSG:3857')
-						),
+						ol.proj.fromLonLat([lng,lat])
+					),
 					name: data.name,
-					id: data.name,
+					vessel_id: data.vessel_id,
 					lat: lat,
 					lng: lng,
 					type: type,
-					color: 'rgba('+color+', 0.8)'
+					cmg: '-'+ data.attr[k][1],
+					color: 'rgba('+ color +', 0.8)'
 				});
 				vectorSource.addFeature(marker);
 			});
@@ -244,8 +227,8 @@
 			var trails = new ol.Feature({
 				geometry: new ol.geom.LineString(temp.trails, 'XYZM'),
 				name: data.name,
-				id: data.name,
-				color: 'rgba('+color+', 0.8)'
+				vessel_id: data.vessel_id,
+				color: 'rgba('+ color +', 0.8)'
 			});
 			vectorSource.addFeature(trails);
 		}
@@ -253,7 +236,11 @@
 
 
 		function get_color() {
-			return (Math.floor(Math.random() * 256)) + ',' + (Math.floor(Math.random() * 256)) + ',' + (Math.floor(Math.random() * 256));
+			return (
+				Math.floor(Math.random() * 256) + ',' + 
+				Math.floor(Math.random() * 256) + ',' + 
+				Math.floor(Math.random() * 256)
+			);
 		}		
 
 		// not working
