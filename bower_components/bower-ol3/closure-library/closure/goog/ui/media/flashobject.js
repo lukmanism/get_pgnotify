@@ -47,6 +47,7 @@ goog.provide('goog.ui.media.FlashObject.ScriptAccessLevel');
 goog.provide('goog.ui.media.FlashObject.Wmodes');
 
 goog.require('goog.asserts');
+goog.require('goog.dom.TagName');
 goog.require('goog.dom.safe');
 goog.require('goog.events.Event');
 goog.require('goog.events.EventHandler');
@@ -135,6 +136,22 @@ goog.ui.media.FlashObject.SwfReadyStates_ = {
   LOADED: 2,
   INTERACTIVE: 3,
   COMPLETE: 4
+};
+
+
+/**
+ * IE specific ready states.
+ *
+ * @see https://msdn.microsoft.com/en-us/library/ms534359(v=vs.85).aspx
+ * @enum {string}
+ * @private
+ */
+goog.ui.media.FlashObject.IeSwfReadyStates_ = {
+  LOADING: 'loading',
+  UNINITIALIZED: 'uninitialized',
+  LOADED: 'loaded',
+  INTERACTIVE: 'interactive',
+  COMPLETE: 'complete'
 };
 
 
@@ -501,7 +518,7 @@ goog.ui.media.FlashObject.prototype.createDom = function() {
     throw Error(goog.ui.Component.Error.NOT_SUPPORTED);
   }
 
-  var element = this.getDomHelper().createElement('div');
+  var element = this.getDomHelper().createElement(goog.dom.TagName.DIV);
   element.className = goog.ui.media.FlashObject.CSS_CLASS;
   this.setElementInternal(element);
 };
@@ -616,13 +633,23 @@ goog.ui.media.FlashObject.prototype.isLoaded = function() {
     return false;
   }
 
+  // IE has different readyState values for elements.
+  if (goog.userAgent.EDGE_OR_IE && this.getFlashElement().readyState &&
+      this.getFlashElement().readyState ==
+          goog.ui.media.FlashObject.IeSwfReadyStates_.COMPLETE) {
+    return true;
+  }
+
   if (this.getFlashElement().readyState &&
       this.getFlashElement().readyState ==
           goog.ui.media.FlashObject.SwfReadyStates_.COMPLETE) {
     return true;
   }
 
-  if (this.getFlashElement().PercentLoaded &&
+  // Use "in" operator to check for PercentLoaded because IE8 throws when
+  // accessing directly. See:
+  // https://github.com/google/closure-library/pull/373.
+  if ('PercentLoaded' in this.getFlashElement() &&
       this.getFlashElement().PercentLoaded() == 100) {
     return true;
   }

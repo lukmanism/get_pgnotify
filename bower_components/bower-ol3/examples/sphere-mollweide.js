@@ -7,16 +7,16 @@ var sphereMollweideProjection = new ol.proj.Projection({
   code: 'ESRI:53009',
   extent: [-9009954.605703328, -9009954.605703328,
     9009954.605703328, 9009954.605703328],
-  worldExtent: [-179, -90, 179, 90]
+  worldExtent: [-179, -89.99, 179, 89.99]
 });
 
 var map = new ol.Map({
   keyboardEventTarget: document,
   layers: [
     new ol.layer.Vector({
-      source: new ol.source.GeoJSON({
-        projection: sphereMollweideProjection,
-        url: 'data/geojson/countries-110m.geojson'
+      source: new ol.source.Vector({
+        url: 'data/geojson/countries-110m.geojson',
+        format: new ol.format.GeoJSON()
       })
     })
   ],

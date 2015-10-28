@@ -18,14 +18,6 @@ ol.has.DEVICE_PIXEL_RATIO = goog.global.devicePixelRatio || 1;
 
 
 /**
- * True if the browser supports ArrayBuffers.
- * @const
- * @type {boolean}
- */
-ol.has.ARRAY_BUFFER = 'ArrayBuffer' in goog.global;
-
-
-/**
  * True if the browser's Canvas implementation implements {get,set}LineDash.
  * @type {boolean}
  */
@@ -33,7 +25,8 @@ ol.has.CANVAS_LINE_DASH = false;
 
 
 /**
- * True if browser supports Canvas.
+ * True if both the library and browser support Canvas.  Always `false`
+ * if `ol.ENABLE_CANVAS` is set to `false` at compile time.
  * @const
  * @type {boolean}
  * @api stable
@@ -48,10 +41,10 @@ ol.has.CANVAS = ol.ENABLE_CANVAS && (
       }
       try {
         var context = ol.dom.createCanvasContext2D();
-        if (goog.isNull(context)) {
+        if (!context) {
           return false;
         } else {
-          if (goog.isDef(context.setLineDash)) {
+          if (context.setLineDash !== undefined) {
             ol.has.CANVAS_LINE_DASH = true;
           }
           return true;
@@ -72,7 +65,7 @@ ol.has.DEVICE_ORIENTATION = 'DeviceOrientationEvent' in goog.global;
 
 
 /**
- * True if browser supports DOM.
+ * True if `ol.ENABLE_DOM` is set to `true` at compile time.
  * @const
  * @type {boolean}
  */
@@ -114,7 +107,8 @@ ol.has.MSPOINTER = !!(goog.global.navigator.msPointerEnabled);
 
 
 /**
- * True if browser supports WebGL.
+ * True if both OpenLayers and browser support WebGL.  Always `false`
+ * if `ol.ENABLE_WEBGL` is set to `false` at compile time.
  * @const
  * @type {boolean}
  * @api stable
@@ -135,7 +129,7 @@ ol.has.WEBGL;
         var gl = ol.webgl.getContext(canvas, {
           failIfMajorPerformanceCaveat: true
         });
-        if (!goog.isNull(gl)) {
+        if (gl) {
           hasWebGL = true;
           textureSize = /** @type {number} */
               (gl.getParameter(gl.MAX_TEXTURE_SIZE));

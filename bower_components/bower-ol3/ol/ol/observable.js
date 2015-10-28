@@ -16,7 +16,7 @@ goog.require('goog.events.EventType');
  *
  * @constructor
  * @extends {goog.events.EventTarget}
- * @suppress {checkStructDictInheritance}
+ * @fires change
  * @struct
  * @api stable
  */
@@ -45,8 +45,7 @@ ol.Observable.unByKey = function(key) {
 
 
 /**
- * Increases the revision counter and disptches a 'change' event.
- * @fires change
+ * Increases the revision counter and dispatches a 'change' event.
  * @api
  */
 ol.Observable.prototype.changed = function() {
@@ -56,6 +55,15 @@ ol.Observable.prototype.changed = function() {
 
 
 /**
+ * Triggered when the revision counter is increased.
+ * @event change
+ * @api
+ */
+
+
+/**
+ * Get the version number for this object.  Each time the object is modified,
+ * its version number will be incremented.
  * @return {number} Revision.
  * @api
  */

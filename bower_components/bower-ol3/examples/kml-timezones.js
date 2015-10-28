@@ -34,10 +34,11 @@ var styleFunction = function(feature, resolution) {
 };
 
 var vector = new ol.layer.Vector({
-  source: new ol.source.KML({
-    extractStyles: false,
-    projection: 'EPSG:3857',
-    url: 'data/kml/timezones.kml'
+  source: new ol.source.Vector({
+    url: 'data/kml/timezones.kml',
+    format: new ol.format.KML({
+      extractStyles: false
+    })
   }),
   style: styleFunction
 });

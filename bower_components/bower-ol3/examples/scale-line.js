@@ -13,7 +13,7 @@ var map = new ol.Map({
       source: new ol.source.OSM()
     })
   ],
-  renderer: exampleNS.getRendererFromQueryString(),
+  renderer: common.getRendererFromQueryString(),
   target: 'map',
   view: new ol.View({
     center: [0, 0],
@@ -22,5 +22,8 @@ var map = new ol.Map({
 });
 
 
-var unitsSelect = new ol.dom.Input(document.getElementById('units'));
-unitsSelect.bindTo('value', scaleLineControl, 'units');
+var unitsSelect = $('#units');
+unitsSelect.on('change', function() {
+  scaleLineControl.setUnits(this.value);
+});
+unitsSelect.val(scaleLineControl.getUnits());

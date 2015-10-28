@@ -10,6 +10,7 @@ goog.require('ol.TileState');
 goog.require('ol.TileUrlFunction');
 goog.require('ol.TileUrlFunctionType');
 goog.require('ol.source.Tile');
+goog.require('ol.source.TileEvent');
 
 
 
@@ -31,7 +32,7 @@ ol.source.TileImage = function(options) {
     logo: options.logo,
     opaque: options.opaque,
     projection: options.projection,
-    state: goog.isDef(options.state) ?
+    state: options.state !== undefined ?
         /** @type {ol.source.State} */ (options.state) : undefined,
     tileGrid: options.tileGrid,
     tilePixelRatio: options.tilePixelRatio,
@@ -42,7 +43,7 @@ ol.source.TileImage = function(options) {
    * @protected
    * @type {ol.TileUrlFunctionType}
    */
-  this.tileUrlFunction = goog.isDef(options.tileUrlFunction) ?
+  this.tileUrlFunction = options.tileUrlFunction !== undefined ?
       options.tileUrlFunction :
       ol.TileUrlFunction.nullTileUrlFunction;
 
@@ -51,13 +52,13 @@ ol.source.TileImage = function(options) {
    * @type {?string}
    */
   this.crossOrigin =
-      goog.isDef(options.crossOrigin) ? options.crossOrigin : null;
+      options.crossOrigin !== undefined ? options.crossOrigin : null;
 
   /**
    * @protected
    * @type {ol.TileLoadFunctionType}
    */
-  this.tileLoadFunction = goog.isDef(options.tileLoadFunction) ?
+  this.tileLoadFunction = options.tileLoadFunction !== undefined ?
       options.tileLoadFunction : ol.source.TileImage.defaultTileLoadFunction;
 
   /**
@@ -65,7 +66,7 @@ ol.source.TileImage = function(options) {
    * @type {function(new: ol.ImageTile, ol.TileCoord, ol.TileState, string,
    *        ?string, ol.TileLoadFunctionType)}
    */
-  this.tileClass = goog.isDef(options.tileClass) ?
+  this.tileClass = options.tileClass !== undefined ?
       options.tileClass : ol.ImageTile;
 
 };
@@ -90,15 +91,16 @@ ol.source.TileImage.prototype.getTile =
   if (this.tileCache.containsKey(tileCoordKey)) {
     return /** @type {!ol.Tile} */ (this.tileCache.get(tileCoordKey));
   } else {
-    goog.asserts.assert(projection);
+    goog.asserts.assert(projection, 'argument projection is truthy');
     var tileCoord = [z, x, y];
-    var urlTileCoord = this.getWrapXTileCoord(tileCoord, projection);
-    var tileUrl = goog.isNull(urlTileCoord) ? undefined :
+    var urlTileCoord = this.getTileCoordForTileUrlFunction(
+        tileCoord, projection);
+    var tileUrl = !urlTileCoord ? undefined :
         this.tileUrlFunction(urlTileCoord, pixelRatio, projection);
     var tile = new this.tileClass(
         tileCoord,
-        goog.isDef(tileUrl) ? ol.TileState.IDLE : ol.TileState.EMPTY,
-        goog.isDef(tileUrl) ? tileUrl : '',
+        tileUrl !== undefined ? ol.TileState.IDLE : ol.TileState.EMPTY,
+        tileUrl !== undefined ? tileUrl : '',
         this.crossOrigin,
         this.tileLoadFunction);
     goog.events.listen(tile, goog.events.EventType.CHANGE,
@@ -111,6 +113,7 @@ ol.source.TileImage.prototype.getTile =
 
 
 /**
+ * Return the tile load function of the source.
  * @return {ol.TileLoadFunctionType} TileLoadFunction
  * @api
  */
@@ -120,6 +123,7 @@ ol.source.TileImage.prototype.getTileLoadFunction = function() {
 
 
 /**
+ * Return the tile URL function of the source.
  * @return {ol.TileUrlFunctionType} TileUrlFunction
  * @api
  */
@@ -153,6 +157,7 @@ ol.source.TileImage.prototype.handleTileChange_ = function(event) {
 
 
 /**
+ * Set the tile load function of the source.
  * @param {ol.TileLoadFunctionType} tileLoadFunction Tile load function.
  * @api
  */
@@ -164,6 +169,7 @@ ol.source.TileImage.prototype.setTileLoadFunction = function(tileLoadFunction) {
 
 
 /**
+ * Set the tile URL function of the source.
  * @param {ol.TileUrlFunctionType} tileUrlFunction Tile URL function.
  * @api
  */

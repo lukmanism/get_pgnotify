@@ -4,7 +4,11 @@
     <title>OpenLayers 3 - Introduction</title>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
     <link href='http://fonts.googleapis.com/css?family=Quattrocento+Sans:400,400italic,700' rel='stylesheet' type='text/css'>
+    <script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
     <link href='../../../../assets/theme/site.css' rel='stylesheet' type='text/css'>
+    <link rel="icon" type="image/x-icon" href="../../../../assets/theme/img/favicon.ico" />
     
   </head>
   <body>
@@ -18,14 +22,14 @@
           <span class='icon-bar'></span>
         </button>
 
-        <a href='/' class='navbar-brand'><img src='../../../../assets/theme/img/logo.png'>&nbsp;OpenLayers 3</a>
+        <a href='/' class='navbar-brand'><img src='../../../../assets/theme/img/logo70.png'>&nbsp;OpenLayers 3</a>
 
         <!-- menu items that get hidden below 768px width -->
         <nav class='collapse navbar-collapse navbar-responsive-collapse'>
           <ul class='nav navbar-nav pull-right'>
-            <li><a href='/en/v3.4.0/doc'>Learn</a></li>
-            <li><a href='/en/v3.4.0/examples'>Examples</a></li>
-            <li><a href='/en/v3.4.0/apidoc'>API</a></li>
+            <li><a href='/en/v3.10.1/doc'class="active">Docs</a></li>
+            <li><a href='/en/v3.10.1/examples'>Examples</a></li>
+            <li><a href='/en/v3.10.1/apidoc'>API</a></li>
             <li><a href='https://github.com/openlayers/ol3'>Code</a></li>
           </ul>
         </nav>
@@ -58,14 +62,15 @@
 </ul>
 <p>Class namespaces, such as <code>ol.layer</code> have a base class type with the same name, such as <code>ol.layer.Layer</code>. These are mainly abstract classes, from which the other subclasses inherit.</p>
 <p>Source files are similarly organised, with a directory for each class namespace. Names are however all lower-case, and the subclasses repeat the superclass type in their name, for example, <code>ol/layer/vectorlayer.js</code>.</p>
-<p>The naming structure means that there are sometimes 2 objects with the same name but different initial, such as <code>ol.feature</code>, a simple object with static functions to be used with features, and <code>ol.Feature</code>, a class used to instantiate new features. These two objects are however stored in the same file, in this case, <code>ol/feature.js</code></p>
 <p>OL3 follows the convention that the names of private properties and methods, that is, those that are not part of the API, end in an underscore. In general, instance properties are private and accessed using accessors.</p>
 
-<div>
+</div>
 
     <footer>
       Code licensed under the <a href='http://www.tldrlegal.com/license/bsd-2-clause-license-(freebsd)'>2-Clause BSD</a>.  All documentation <a href='http://creativecommons.org/licenses/by/3.0/'>CC BY 3.0</a>. Thanks to our <a href='/sponsors.html'>sponsors</a>.
     </footer>
-    <script src='../../../../assets/js/main.js'></script>
+    <script src="https://code.jquery.com/jquery-1.11.2.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+    
   </body>
 </html>

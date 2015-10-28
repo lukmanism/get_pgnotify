@@ -8,6 +8,7 @@ goog.require('goog.dom.fullscreen');
 goog.require('goog.dom.fullscreen.EventType');
 goog.require('goog.events');
 goog.require('goog.events.EventType');
+goog.require('ol');
 goog.require('ol.control.Control');
 goog.require('ol.css');
 
@@ -28,36 +29,33 @@ goog.require('ol.css');
  */
 ol.control.FullScreen = function(opt_options) {
 
-  var options = goog.isDef(opt_options) ? opt_options : {};
+  var options = opt_options ? opt_options : {};
 
   /**
    * @private
    * @type {string}
    */
-  this.cssClassName_ = goog.isDef(options.className) ?
-      options.className : 'ol-full-screen';
+  this.cssClassName_ = options.className ? options.className : 'ol-full-screen';
 
-  var label = goog.isDef(options.label) ? options.label : '\u2194';
-
-  /**
-   * @private
-   * @type {Node}
-   */
-  this.labelNode_ = /** @type {Node} */ (goog.isString(label) ?
-          goog.dom.createTextNode(label) : label);
-
-  var labelActive = goog.isDef(options.labelActive) ?
-      options.labelActive : '\u00d7';
+  var label = options.label ? options.label : '\u2194';
 
   /**
    * @private
    * @type {Node}
    */
-  this.labelActiveNode_ = /** @type {Node} */ (goog.isString(labelActive) ?
-          goog.dom.createTextNode(labelActive) : labelActive);
+  this.labelNode_ = goog.isString(label) ?
+      goog.dom.createTextNode(label) : label;
 
-  var tipLabel = goog.isDef(options.tipLabel) ?
-      options.tipLabel : 'Toggle full-screen';
+  var labelActive = options.labelActive ? options.labelActive : '\u00d7';
+
+  /**
+   * @private
+   * @type {Node}
+   */
+  this.labelActiveNode_ = goog.isString(labelActive) ?
+      goog.dom.createTextNode(labelActive) : labelActive;
+
+  var tipLabel = options.tipLabel ? options.tipLabel : 'Toggle full-screen';
   var button = goog.dom.createDom(goog.dom.TagName.BUTTON, {
     'class': this.cssClassName_ + '-' + goog.dom.fullscreen.isFullScreen(),
     'type': 'button',
@@ -66,13 +64,6 @@ ol.control.FullScreen = function(opt_options) {
 
   goog.events.listen(button, goog.events.EventType.CLICK,
       this.handleClick_, false, this);
-
-  goog.events.listen(button, [
-    goog.events.EventType.MOUSEOUT,
-    goog.events.EventType.FOCUSOUT
-  ], function() {
-    this.blur();
-  }, false);
 
   goog.events.listen(goog.global.document,
       goog.dom.fullscreen.EventType.CHANGE,
@@ -92,7 +83,7 @@ ol.control.FullScreen = function(opt_options) {
    * @private
    * @type {boolean}
    */
-  this.keys_ = goog.isDef(options.keys) ? options.keys : false;
+  this.keys_ = options.keys !== undefined ? options.keys : false;
 
 };
 goog.inherits(ol.control.FullScreen, ol.control.Control);
@@ -116,16 +107,16 @@ ol.control.FullScreen.prototype.handleFullScreen_ = function() {
     return;
   }
   var map = this.getMap();
-  if (goog.isNull(map)) {
+  if (!map) {
     return;
   }
   if (goog.dom.fullscreen.isFullScreen()) {
     goog.dom.fullscreen.exitFullScreen();
   } else {
     var target = map.getTarget();
-    goog.asserts.assert(goog.isDefAndNotNull(target));
+    goog.asserts.assert(target, 'target should be defined');
     var element = goog.dom.getElement(target);
-    goog.asserts.assert(goog.isDefAndNotNull(element));
+    goog.asserts.assert(element, 'element should be defined');
     if (this.keys_) {
       goog.dom.fullscreen.requestFullScreenWithKeys(element);
     } else {
@@ -150,7 +141,7 @@ ol.control.FullScreen.prototype.handleFullScreenChange_ = function() {
     goog.dom.classlist.swap(button, opened, closed);
     goog.dom.replaceNode(this.labelNode_, this.labelActiveNode_);
   }
-  if (!goog.isNull(map)) {
+  if (map) {
     map.updateSize();
   }
 };

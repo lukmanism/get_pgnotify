@@ -1,4 +1,5 @@
 goog.provide('ol.source.Image');
+goog.provide('ol.source.ImageEvent');
 
 goog.require('goog.array');
 goog.require('goog.asserts');
@@ -47,13 +48,13 @@ ol.source.Image = function(options) {
    * @private
    * @type {Array.<number>}
    */
-  this.resolutions_ = goog.isDef(options.resolutions) ?
+  this.resolutions_ = options.resolutions !== undefined ?
       options.resolutions : null;
-  goog.asserts.assert(goog.isNull(this.resolutions_) ||
+  goog.asserts.assert(!this.resolutions_ ||
       goog.array.isSorted(this.resolutions_,
           function(a, b) {
             return b - a;
-          }, true));
+          }, true), 'resolutions must be null or sorted in descending order');
 
 };
 goog.inherits(ol.source.Image, ol.source.Source);
@@ -74,7 +75,7 @@ ol.source.Image.prototype.getResolutions = function() {
  */
 ol.source.Image.prototype.findNearestResolution =
     function(resolution) {
-  if (!goog.isNull(this.resolutions_)) {
+  if (this.resolutions_) {
     var idx = ol.array.linearFindNearest(this.resolutions_, resolution, 0);
     resolution = this.resolutions_[idx];
   }

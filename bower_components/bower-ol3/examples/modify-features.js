@@ -5,13 +5,16 @@ var raster = new ol.layer.Tile({
 });
 
 var vector = new ol.layer.Vector({
-  source: new ol.source.GeoJSON({
-    projection: 'EPSG:3857',
-    url: 'data/geojson/countries.geojson'
+  source: new ol.source.Vector({
+    url: 'data/geojson/countries.geojson',
+    format: new ol.format.GeoJSON(),
+    wrapX: false
   })
 });
 
-var select = new ol.interaction.Select();
+var select = new ol.interaction.Select({
+  wrapX: false
+});
 
 var modify = new ol.interaction.Modify({
   features: select.getFeatures()

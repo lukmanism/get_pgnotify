@@ -10,6 +10,7 @@ goog.require('goog.events');
 goog.require('goog.events.EventType');
 goog.require('goog.object');
 goog.require('goog.style');
+goog.require('ol');
 goog.require('ol.Attribution');
 goog.require('ol.control.Control');
 goog.require('ol.css');
@@ -31,7 +32,7 @@ goog.require('ol.source.Tile');
  */
 ol.control.Attribution = function(opt_options) {
 
-  var options = goog.isDef(opt_options) ? opt_options : {};
+  var options = opt_options ? opt_options : {};
 
   /**
    * @private
@@ -45,52 +46,49 @@ ol.control.Attribution = function(opt_options) {
    */
   this.logoLi_ = goog.dom.createElement(goog.dom.TagName.LI);
 
-  goog.dom.appendChild(this.ulElement_, this.logoLi_);
+  this.ulElement_.appendChild(this.logoLi_);
   goog.style.setElementShown(this.logoLi_, false);
 
   /**
    * @private
    * @type {boolean}
    */
-  this.collapsed_ = goog.isDef(options.collapsed) ? options.collapsed : true;
+  this.collapsed_ = options.collapsed !== undefined ? options.collapsed : true;
 
   /**
    * @private
    * @type {boolean}
    */
-  this.collapsible_ = goog.isDef(options.collapsible) ?
+  this.collapsible_ = options.collapsible !== undefined ?
       options.collapsible : true;
 
   if (!this.collapsible_) {
     this.collapsed_ = false;
   }
 
-  var className = goog.isDef(options.className) ?
-      options.className : 'ol-attribution';
+  var className = options.className ? options.className : 'ol-attribution';
 
-  var tipLabel = goog.isDef(options.tipLabel) ?
-      options.tipLabel : 'Attributions';
+  var tipLabel = options.tipLabel ? options.tipLabel : 'Attributions';
 
-  var collapseLabel = goog.isDef(options.collapseLabel) ?
-      options.collapseLabel : '\u00BB';
+  var collapseLabel = options.collapseLabel ? options.collapseLabel : '\u00BB';
 
   /**
    * @private
    * @type {Node}
    */
-  this.collapseLabel_ = /** @type {Node} */ (goog.isString(collapseLabel) ?
+  this.collapseLabel_ = goog.isString(collapseLabel) ?
       goog.dom.createDom(goog.dom.TagName.SPAN, {}, collapseLabel) :
-      collapseLabel);
+      collapseLabel;
 
-  var label = goog.isDef(options.label) ? options.label : 'i';
+  var label = options.label ? options.label : 'i';
 
   /**
    * @private
    * @type {Node}
    */
-  this.label_ = /** @type {Node} */ (goog.isString(label) ?
+  this.label_ = goog.isString(label) ?
       goog.dom.createDom(goog.dom.TagName.SPAN, {}, label) :
-      label);
+      label;
 
   var activeLabel = (this.collapsible_ && !this.collapsed_) ?
       this.collapseLabel_ : this.label_;
@@ -116,8 +114,7 @@ ol.control.Attribution = function(opt_options) {
   var element = goog.dom.createDom(goog.dom.TagName.DIV,
       cssClasses, this.ulElement_, button);
 
-  var render = goog.isDef(options.render) ?
-      options.render : ol.control.Attribution.render;
+  var render = options.render ? options.render : ol.control.Attribution.render;
 
   goog.base(this, {
     element: element,
@@ -167,15 +164,15 @@ ol.control.Attribution.prototype.getSourceAttributions = function(frameState) {
   /** @type {Object.<string, ol.Attribution>} */
   var hiddenAttributions = {};
   var projection = frameState.viewState.projection;
-  goog.asserts.assert(!goog.isNull(projection));
+  goog.asserts.assert(projection, 'projection of viewState required');
   for (i = 0, ii = layerStatesArray.length; i < ii; i++) {
     source = layerStatesArray[i].layer.getSource();
-    if (goog.isNull(source)) {
+    if (!source) {
       continue;
     }
     sourceKey = goog.getUid(source).toString();
     sourceAttributions = source.getAttributions();
-    if (goog.isNull(sourceAttributions)) {
+    if (!sourceAttributions) {
       continue;
     }
     for (j = 0, jj = sourceAttributions.length; j < jj; j++) {
@@ -185,10 +182,11 @@ ol.control.Attribution.prototype.getSourceAttributions = function(frameState) {
         continue;
       }
       tileRanges = frameState.usedTiles[sourceKey];
-      if (goog.isDef(tileRanges)) {
-        goog.asserts.assertInstanceof(source, ol.source.Tile);
+      if (tileRanges) {
+        goog.asserts.assertInstanceof(source, ol.source.Tile,
+            'source should be an ol.source.Tile');
         var tileGrid = source.getTileGridForProjection(projection);
-        goog.asserts.assert(!goog.isNull(tileGrid));
+        goog.asserts.assert(tileGrid, 'tileGrid required for projection');
         intersectsTileRange = sourceAttribution.intersectsAnyTileRange(
             tileRanges, tileGrid, projection);
       } else {
@@ -209,6 +207,7 @@ ol.control.Attribution.prototype.getSourceAttributions = function(frameState) {
 
 
 /**
+ * Update the attribution element.
  * @param {ol.MapEvent} mapEvent Map event.
  * @this {ol.control.Attribution}
  * @api
@@ -224,7 +223,7 @@ ol.control.Attribution.render = function(mapEvent) {
  */
 ol.control.Attribution.prototype.updateElement_ = function(frameState) {
 
-  if (goog.isNull(frameState)) {
+  if (!frameState) {
     if (this.renderedVisible_) {
       goog.style.setElementShown(this.element, false);
       this.renderedVisible_ = false;
@@ -266,7 +265,7 @@ ol.control.Attribution.prototype.updateElement_ = function(frameState) {
     attributionElement = goog.dom.createElement(goog.dom.TagName.LI);
     attributionElement.innerHTML =
         visibleAttributions[attributionKey].getHTML();
-    goog.dom.appendChild(this.ulElement_, attributionElement);
+    this.ulElement_.appendChild(attributionElement);
     this.attributionElements_[attributionKey] = attributionElement;
     this.attributionElementRenderedVisible_[attributionKey] = true;
   }
@@ -275,7 +274,7 @@ ol.control.Attribution.prototype.updateElement_ = function(frameState) {
     attributionElement.innerHTML =
         hiddenAttributions[attributionKey].getHTML();
     goog.style.setElementShown(attributionElement, false);
-    goog.dom.appendChild(this.ulElement_, attributionElement);
+    this.ulElement_.appendChild(attributionElement);
     this.attributionElements_[attributionKey] = attributionElement;
   }
 
@@ -329,7 +328,7 @@ ol.control.Attribution.prototype.insertLogos_ = function(frameState) {
         });
         logoElement.appendChild(image);
       }
-      goog.dom.appendChild(this.logoLi_, logoElement);
+      this.logoLi_.appendChild(logoElement);
       logoElements[logoKey] = logoElement;
     }
   }
@@ -364,6 +363,7 @@ ol.control.Attribution.prototype.handleToggle_ = function() {
 
 
 /**
+ * Return `true` if the attribution is collapsible, `false` otherwise.
  * @return {boolean} True if the widget is collapsible.
  * @api stable
  */
@@ -373,6 +373,7 @@ ol.control.Attribution.prototype.getCollapsible = function() {
 
 
 /**
+ * Set whether the attribution should be collapsible.
  * @param {boolean} collapsible True if the widget is collapsible.
  * @api stable
  */
@@ -389,6 +390,9 @@ ol.control.Attribution.prototype.setCollapsible = function(collapsible) {
 
 
 /**
+ * Collapse or expand the attribution according to the passed parameter. Will
+ * not do anything if the attribution isn't collapsible or if the current
+ * collapsed state is already the one requested.
  * @param {boolean} collapsed True if the widget is collapsed.
  * @api stable
  */
@@ -401,6 +405,8 @@ ol.control.Attribution.prototype.setCollapsed = function(collapsed) {
 
 
 /**
+ * Return `true` when the attribution is currently collapsed or `false`
+ * otherwise.
  * @return {boolean} True if the widget is collapsed.
  * @api stable
  */

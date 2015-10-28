@@ -15,12 +15,26 @@
 goog.provide('goog.dom.xmlTest');
 goog.setTestOnly('goog.dom.xmlTest');
 
+goog.require('goog.dom.TagName');
 goog.require('goog.dom.xml');
 goog.require('goog.testing.jsunit');
 goog.require('goog.userAgent');
 
 function testSerialize() {
   var doc = goog.dom.xml.createDocument();
+  var node = doc.createElement('root');
+  doc.appendChild(node);
+
+  var serializedNode = goog.dom.xml.serialize(node);
+  assertTrue(/<root ?\/>/.test(serializedNode));
+
+  var serializedDoc = goog.dom.xml.serialize(doc);
+  assertTrue(/(<\?xml version="1.0"\?>)?<root ?\/>/.test(serializedDoc));
+}
+
+function testSerializeWithActiveX() {
+  // Prefer ActiveXObject if available.
+  var doc = goog.dom.xml.createDocument('', '', true);
   var node = doc.createElement('root');
   doc.appendChild(node);
 
@@ -75,9 +89,48 @@ function testMaxSizeInIE() {
   }
 }
 
+function testSelectSingleNodeNoActiveX() {
+  if (goog.userAgent.IE) {
+    return;
+  }
+
+  var xml = goog.dom.xml.loadXml('<a><b><c>d</c></b></a>');
+  var node = xml.firstChild;
+  var bNode = goog.dom.xml.selectSingleNode(node, 'b');
+  assertNotNull(bNode);
+}
+
+function testSelectSingleNodeWithActiveX() {
+  // Enable ActiveXObject so IE has xpath support.
+  var xml = goog.dom.xml.loadXml('<a><b><c>d</c></b></a>', true);
+  var node = xml.firstChild;
+  var bNode = goog.dom.xml.selectSingleNode(node, 'b');
+  assertNotNull(bNode);
+}
+
+function testSelectNodesNoActiveX() {
+  if (goog.userAgent.IE) {
+    return;
+  }
+
+  var xml = goog.dom.xml.loadXml('<a><b><c>d</c></b><b>foo</b></a>');
+  var node = xml.firstChild;
+  var bNodes = goog.dom.xml.selectNodes(node, 'b');
+  assertNotNull(bNodes);
+  assertEquals(2, bNodes.length);
+}
+
+function testSelectNodesWithActiveX() {
+  var xml = goog.dom.xml.loadXml('<a><b><c>d</c></b><b>foo</b></a>', true);
+  var node = xml.firstChild;
+  var bNodes = goog.dom.xml.selectNodes(node, 'b');
+  assertNotNull(bNodes);
+  assertEquals(2, bNodes.length);
+}
+
 function testSetAttributes() {
   var xmlElement = goog.dom.xml.createDocument().createElement('root');
-  var domElement = document.createElement('div');
+  var domElement = document.createElement(goog.dom.TagName.DIV);
   var attrs = {
     name: 'test3',
     title: 'A title',

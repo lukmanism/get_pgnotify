@@ -2,7 +2,7 @@ var raster = new ol.layer.Tile({
   source: new ol.source.MapQuest({layer: 'sat'})
 });
 
-var source = new ol.source.Vector();
+var source = new ol.source.Vector({wrapX: false});
 
 var vector = new ol.layer.Vector({
   source: source,
@@ -25,7 +25,7 @@ var vector = new ol.layer.Vector({
 
 var map = new ol.Map({
   layers: [raster, vector],
-  renderer: exampleNS.getRendererFromQueryString(),
+  renderer: common.getRendererFromQueryString(),
   target: 'map',
   view: new ol.View({
     center: [-11000000, 4600000],
@@ -39,9 +39,30 @@ var draw; // global so we can remove it later
 function addInteraction() {
   var value = typeSelect.value;
   if (value !== 'None') {
+    var geometryFunction, maxPoints;
+    if (value === 'Square') {
+      value = 'Circle';
+      geometryFunction = ol.interaction.Draw.createRegularPolygon(4);
+    } else if (value === 'Box') {
+      value = 'LineString';
+      maxPoints = 2;
+      geometryFunction = function(coordinates, geometry) {
+        if (!geometry) {
+          geometry = new ol.geom.Polygon(null);
+        }
+        var start = coordinates[0];
+        var end = coordinates[1];
+        geometry.setCoordinates([
+          [start, [start[0], end[1]], end, [end[0], start[1]], start]
+        ]);
+        return geometry;
+      };
+    }
     draw = new ol.interaction.Draw({
       source: source,
-      type: /** @type {ol.geom.GeometryType} */ (value)
+      type: /** @type {ol.geom.GeometryType} */ (value),
+      geometryFunction: geometryFunction,
+      maxPoints: maxPoints
     });
     map.addInteraction(draw);
   }

@@ -1,12 +1,16 @@
 goog.provide('ol.source.Tile');
+goog.provide('ol.source.TileEvent');
 goog.provide('ol.source.TileOptions');
 
+goog.require('goog.asserts');
 goog.require('goog.events.Event');
+goog.require('ol');
 goog.require('ol.Attribution');
 goog.require('ol.Extent');
 goog.require('ol.TileCache');
 goog.require('ol.TileRange');
 goog.require('ol.TileState');
+goog.require('ol.size');
 goog.require('ol.source.Source');
 goog.require('ol.tilecoord');
 goog.require('ol.tilegrid.TileGrid');
@@ -45,27 +49,28 @@ ol.source.Tile = function(options) {
     extent: options.extent,
     logo: options.logo,
     projection: options.projection,
-    state: options.state
+    state: options.state,
+    wrapX: options.wrapX
   });
 
   /**
    * @private
    * @type {boolean}
    */
-  this.opaque_ = goog.isDef(options.opaque) ? options.opaque : false;
+  this.opaque_ = options.opaque !== undefined ? options.opaque : false;
 
   /**
    * @private
    * @type {number}
    */
-  this.tilePixelRatio_ = goog.isDef(options.tilePixelRatio) ?
+  this.tilePixelRatio_ = options.tilePixelRatio !== undefined ?
       options.tilePixelRatio : 1;
 
   /**
    * @protected
    * @type {ol.tilegrid.TileGrid}
    */
-  this.tileGrid = goog.isDef(options.tileGrid) ? options.tileGrid : null;
+  this.tileGrid = options.tileGrid !== undefined ? options.tileGrid : null;
 
   /**
    * @protected
@@ -74,10 +79,10 @@ ol.source.Tile = function(options) {
   this.tileCache = new ol.TileCache();
 
   /**
-   * @private
-   * @type {boolean|undefined}
+   * @protected
+   * @type {ol.Size}
    */
-  this.wrapX_ = options.wrapX;
+  this.tmpSize = [0, 0];
 
 };
 goog.inherits(ol.source.Tile, ol.source.Source);
@@ -176,6 +181,7 @@ ol.source.Tile.prototype.getTile = goog.abstractMethod;
 
 
 /**
+ * Return the tile grid of the tile source.
  * @return {ol.tilegrid.TileGrid} Tile grid.
  * @api stable
  */
@@ -189,7 +195,7 @@ ol.source.Tile.prototype.getTileGrid = function() {
  * @return {ol.tilegrid.TileGrid} Tile grid.
  */
 ol.source.Tile.prototype.getTileGridForProjection = function(projection) {
-  if (goog.isNull(this.tileGrid)) {
+  if (!this.tileGrid) {
     return ol.tilegrid.getForProjection(projection);
   } else {
     return this.tileGrid;
@@ -201,37 +207,35 @@ ol.source.Tile.prototype.getTileGridForProjection = function(projection) {
  * @param {number} z Z.
  * @param {number} pixelRatio Pixel ratio.
  * @param {ol.proj.Projection} projection Projection.
- * @return {number} Tile size.
+ * @return {ol.Size} Tile size.
  */
 ol.source.Tile.prototype.getTilePixelSize =
     function(z, pixelRatio, projection) {
   var tileGrid = this.getTileGridForProjection(projection);
-  return tileGrid.getTileSize(z) * this.tilePixelRatio_;
+  return ol.size.scale(ol.size.toSize(tileGrid.getTileSize(z), this.tmpSize),
+      this.tilePixelRatio_, this.tmpSize);
 };
 
 
 /**
- * Handles x-axis wrapping. When `this.wrapX_` is undefined or the projection
- * is not a global projection, `tileCoord` will be returned unaltered. When
- * `this.wrapX_` is true, the tile coordinate will be wrapped horizontally.
- * When `this.wrapX_` is `false`, `null` will be returned for tiles that are
- * outside the projection extent.
+ * Returns a tile coordinate wrapped around the x-axis. When the tile coordinate
+ * is outside the resolution and extent range of the tile grid, `null` will be
+ * returned.
  * @param {ol.TileCoord} tileCoord Tile coordinate.
  * @param {ol.proj.Projection=} opt_projection Projection.
- * @return {ol.TileCoord} Tile coordinate.
+ * @return {ol.TileCoord} Tile coordinate to be passed to the tileUrlFunction or
+ *     null if no tile URL should be created for the passed `tileCoord`.
  */
-ol.source.Tile.prototype.getWrapXTileCoord =
+ol.source.Tile.prototype.getTileCoordForTileUrlFunction =
     function(tileCoord, opt_projection) {
-  var projection = goog.isDef(opt_projection) ?
+  var projection = opt_projection !== undefined ?
       opt_projection : this.getProjection();
   var tileGrid = this.getTileGridForProjection(projection);
-  if (goog.isDef(this.wrapX_) && tileGrid.isGlobal(tileCoord[0], projection)) {
-    return this.wrapX_ ?
-        ol.tilecoord.wrapX(tileCoord, tileGrid, projection) :
-        ol.tilecoord.clipX(tileCoord, tileGrid, projection);
-  } else {
-    return tileCoord;
+  goog.asserts.assert(tileGrid, 'tile grid needed');
+  if (this.getWrapX() && projection.isGlobal()) {
+    tileCoord = ol.tilecoord.wrapX(tileCoord, tileGrid, projection);
   }
+  return ol.tilecoord.withinExtentAndZ(tileCoord, tileGrid) ? tileCoord : null;
 };
 
 
@@ -241,7 +245,7 @@ ol.source.Tile.prototype.getWrapXTileCoord =
  * @param {number} x Tile coordinate x.
  * @param {number} y Tile coordinate y.
  */
-ol.source.Tile.prototype.useTile = goog.nullFunction;
+ol.source.Tile.prototype.useTile = ol.nullFunction;
 
 
 
@@ -279,21 +283,21 @@ ol.source.TileEventType = {
   /**
    * Triggered when a tile starts loading.
    * @event ol.source.TileEvent#tileloadstart
-   * @api
+   * @api stable
    */
   TILELOADSTART: 'tileloadstart',
 
   /**
    * Triggered when a tile finishes loading.
    * @event ol.source.TileEvent#tileloadend
-   * @api
+   * @api stable
    */
   TILELOADEND: 'tileloadend',
 
   /**
    * Triggered if tile loading results in an error.
    * @event ol.source.TileEvent#tileloaderror
-   * @api
+   * @api stable
    */
   TILELOADERROR: 'tileloaderror'
 
