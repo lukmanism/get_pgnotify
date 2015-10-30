@@ -94,20 +94,12 @@
 					} else { // trails arrow
 						style_cache[type] = new ol.style.Style({})
 						var geometry = [feature.get('lat'),feature.get('lng')];
-						var fill = new ol.style.Fill({
-							color: 'rgba('+ feature.get('color') +', 0.35)'
-						});
-						var stroke = new ol.style.Stroke({
-							color: 'rgba('+ feature.get('color') +', 0.8)',
-							width: 0.5
-						});
-
 						style_cache[type] = new ol.style.Style({
 							image: new ol.style.Icon(/** @type {olx.style.IconOptions} */ ({
 								anchor: [12, 6],
 								anchorXUnits: 'pixels',
 								anchorYUnits: 'pixels',
-								opacity: 0.2,
+								opacity: feature.get('opacity'),
 								src: 'images/arrow.png',
 								rotation: feature.get('rotation'),
 								snapToPixel: true
@@ -186,6 +178,8 @@
 		function add_point(data, color){
 			var rotation = 0;
 			$.each(data.trails, function(k,v){
+				var len = data.trails.length;
+				var opacity = (((len-1)-k)/(data.trails.length-1)).toFixed(1);
 				var lat = parseFloat(data.trails[k][0]), lng = parseFloat(data.trails[k][1]);
 
 				if(k < (data.trails.length-1)){
@@ -212,7 +206,8 @@
 					type: type,
 					cmg: data.attr[k][1],
 					color: color,
-					timestamp: data.attr[k][2]
+					timestamp: data.attr[k][2],
+					opacity: opacity
 				});
 				vectorSource.addFeature(marker);
 			});
