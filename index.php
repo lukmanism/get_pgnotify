@@ -145,13 +145,10 @@
 					title: 'TITLE',
 					content: 'CONTENT'
 				}).popover('show');
-				$('#map .popover-title').html('ID: '+feature.get('vessel_id'));
+				$('#map .popover-title').html('<h4>'+feature.get('name')+'</h4>'+ feature.get('point'));
 				$('#map .popover-content').html(
-					'<div><b>Vessel ID: </b>' + feature.get('vessel_id') 
-					+ '</div><div><b>Lat: </b>' + parseFloat(feature.get('lat')).toFixed(8)
-					+ '</div><div><b>Lng: </b>' + parseFloat(feature.get('lng')).toFixed(8)
-					+ '</div><div><b>Rotation: </b>' + feature.get('rotation')
-					+ '</div><div><b>Time: </b>' + feature.get('timestamp') + '</div>'
+					'<div>Vessel ID: ' + feature.get('vessel_id') 
+					+ '</div><div>Timestamp: ' + feature.get('timestamp') + '</div>'
 				);				
 			} else {
 				element.popover('destroy');
@@ -181,6 +178,7 @@
 				var len = data.trails.length;
 				var opacity = (((len-1)-k)/(data.trails.length-1)).toFixed(1);
 				var lat = parseFloat(data.trails[k][0]), lng = parseFloat(data.trails[k][1]);
+				var test = convert_dms(parseFloat(data.trails[k][0]), parseFloat(data.trails[k][1]))
 
 				if(k < (data.trails.length-1)){
 					var start = {
@@ -200,11 +198,9 @@
 					geometry: new ol.geom.Point(ol.proj.fromLonLat([lng,lat])),
 					name: data.name,
 					vessel_id: data.vessel_id,
-					lat: lat,
-					lng: lng,
+					point: ol.coordinate.toStringHDMS([lng,lat]),
 					rotation: rotation,
 					type: type,
-					cmg: data.attr[k][1],
 					color: color,
 					timestamp: data.attr[k][2],
 					opacity: opacity
@@ -247,6 +243,21 @@
 				Math.floor(Math.random() * 256)
 			);
 		}
+
+
+		function convert_dms( lat, lng ) {
+			var convertLat = Math.abs(lat);
+			var LatDeg = Math.floor(convertLat);
+			var LatSec = (Math.floor((convertLat - LatDeg) * 60));
+			var LatCardinal = ((lat > 0) ? "°N" : "°S");
+
+			var convertLng = Math.abs(lng);
+			var LngDeg = Math.floor(convertLng);
+			var LngSec = (Math.floor((convertLng - LngDeg) * 60));
+			var LngCardinal = ((lng > 0) ? "°E" : "°W");
+
+			return LatDeg + LatCardinal + LatSec  + "" + LngDeg + LngCardinal + LngSec;
+		}		
 	</script>
 
 </body>
