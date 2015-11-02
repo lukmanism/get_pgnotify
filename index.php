@@ -45,8 +45,7 @@
 			$('#status').text("Disconnected");
 		});
 
-		// init webservices
-		connect_api();
+		connect_api(); // init webservices
 
 		var map = new ol.Map({
 			target: 'map',
@@ -128,7 +127,6 @@
 			stopEvent: true
 		});
 		map.addOverlay(popup);
-
 		map.on('click', function(evt){
 			var feature = map.forEachFeatureAtPixel(evt.pixel, function(feature, layer){
 				return feature;
@@ -145,9 +143,10 @@
 					title: 'TITLE',
 					content: 'CONTENT'
 				}).popover('show');
-				$('#map .popover-title').html('<h4>'+feature.get('name')+'</h4>'+ feature.get('point'));
+				$('#map .popover-title').html('<h4>'+feature.get('name')+'</h4>');
 				$('#map .popover-content').html(
-					'<div>Vessel ID: ' + feature.get('vessel_id') 
+					'<h5>' + feature.get('point') 
+					+ '</h5><div>MMSI: ' + feature.get('vessel_id') + '</div>'
 					+ '</div><div>Timestamp: ' + feature.get('timestamp') + '</div>'
 				);				
 			} else {
@@ -178,7 +177,6 @@
 				var len = data.trails.length;
 				var opacity = (((len-1)-k)/(data.trails.length-1)).toFixed(1);
 				var lat = parseFloat(data.trails[k][0]), lng = parseFloat(data.trails[k][1]);
-				var test = convert_dms(parseFloat(data.trails[k][0]), parseFloat(data.trails[k][1]))
 
 				if(k < (data.trails.length-1)){
 					var start = {
@@ -243,21 +241,7 @@
 				Math.floor(Math.random() * 256)
 			);
 		}
-
-
-		function convert_dms( lat, lng ) {
-			var convertLat = Math.abs(lat);
-			var LatDeg = Math.floor(convertLat);
-			var LatSec = (Math.floor((convertLat - LatDeg) * 60));
-			var LatCardinal = ((lat > 0) ? "°N" : "°S");
-
-			var convertLng = Math.abs(lng);
-			var LngDeg = Math.floor(convertLng);
-			var LngSec = (Math.floor((convertLng - LngDeg) * 60));
-			var LngCardinal = ((lng > 0) ? "°E" : "°W");
-
-			return LatDeg + LatCardinal + LatSec  + "" + LngDeg + LngCardinal + LngSec;
-		}		
+		
 	</script>
 
 </body>
