@@ -174,7 +174,7 @@
 		var element = $('#popup');
 		var popup = new ol.Overlay({
 			element: element,
-			offset : [8,-20],
+			offset : [8,-42],
 			stopEvent: true
 		});
 		map.addOverlay(popup);
@@ -199,7 +199,7 @@
 					title: 'TITLE',
 					content: 'CONTENT'
 				}).popover('show');
-				$('#map .popover-title').html('<h4>'+feature.get('name')+'</h4>');
+				$('#map .popover-title').html('<h4>'+feature.get('name')+'<button type="button" id="close" class="close" onclick="$(&quot;#popup&quot;).popover(&quot;hide&quot;);">&times;</button></h4>');
 				$('#map .popover-content').html(
 					'<div><b>MMSI: </b>' + feature.get('vessel_id') + '</div>'
 					+ '<h5>' + feature.get('point') + '</h5>'
@@ -376,18 +376,10 @@
 		}
 
 		function feature_init(features, limit, type, highlight){
-
-			// if(type == 'markers')
-			// console.log(type, features[0].get('opacity'))
-
 			var id = features[0].get('vessel_id');
 			var zoom = map.getView().getZoom();
 			var i = 0, len = (features.length - 1);
 			if(zoom >= limit && init_test[type][id] === false){
-
-
-
-
 				for(i; i <= len; i++) {
 					if(typeof highlight === 'undefined'){
 						vectorSource.addFeature(features[i]);						
@@ -398,9 +390,6 @@
 						features[i].set('opacity', opacity);	
 					}
 				}
-
-
-
 				init_test[type][id] = true;
 			} else if(zoom <= (limit-1) && init_test[type][id] === true){
 				for(i; i <= len; i++) {
