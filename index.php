@@ -40,7 +40,7 @@
 			trails: [],
 			markers: [],
 			markers_stop: []
-		}, vessels = [];
+		}, vessels = [], selected_vessel_id = 0;
 		var style_cache = {};
 
 //  Map init
@@ -183,7 +183,12 @@
 				return feature;
 			});
 
-			if(feature){
+			if(selected_vessel_id > 0) {
+				features_onclick(selected_vessel_id, false); // reset feature highlight
+			}
+			var vessel_id = (feature)? feature.get('vessel_id'): selected_vessel_id;
+			if(feature && (feature.get('type') != 'trails')){
+				features_onclick(feature.get('vessel_id'), true); // feature highlight
 				var geometry = feature.getGeometry();
 				var coord = geometry.getCoordinates();
 				popup.setPosition(coord);
@@ -200,8 +205,13 @@
 					+ '<h5>' + feature.get('point') + '</h5>'
 					+ '<h5>' + feature.get('timestamp') + '</h5>'
 				);
+				selected_vessel_id = feature.get('vessel_id');
 			} else {
+				selected_vessel_id = 0;
 				element.popover('destroy');
+				if(vessel_id > 0) {
+					features_onclick(vessel_id, false); // reset feature highlight
+				}
 			}
 		});
 
@@ -214,6 +224,16 @@
 				}
 			}
 		});
+
+		function features_onclick(vessel_id, active){
+			var vessel = vessels[vessel_id][0];
+			for(var key in vessel) {
+				if (vessel.hasOwnProperty(key) && vessel[key].length >= 1) {
+					init_test[key][vessel_id] = false;
+					feature_init(vessel[key], 0, key, active);
+				}
+			}			
+		}
 
 		function get_features(vessel_id){
 			for(var key in init_test) {
@@ -259,6 +279,7 @@
 				markers: [],
 				markers_stop: [],
 			};
+			var vessel_id = parseFloat(data.vessel_id);
 
 			if(data.trails.length >= 2){ // Vessels with more than one trail update will have trail lines.
 				var k = 0, len = (data.trails.length - 1);
@@ -287,7 +308,7 @@
 							rotation	: rotation,
 							timestamp	: new Date(timestamp).toUTCString(),
 							type		: 'markers',
-							vessel_id	: data.vessel_id,
+							vessel_id	: vessel_id,
 							zoom_limit	: 0
 						}));	
 					} else {
@@ -301,7 +322,7 @@
 							rotation	: rotation,
 							timestamp	: new Date(timestamp).toUTCString(),
 							type		: 'joints',
-							vessel_id	: data.vessel_id,
+							vessel_id	: vessel_id,
 							zoom_limit	: 8 
 						}));
 					}
@@ -317,7 +338,7 @@
 						name		: data.name,
 						opacity		: opacity,
 						type		: 'trails',
-						vessel_id	: data.vessel_id,
+						vessel_id	: vessel_id,
 						zoom_limit	: 7 
 					}));				
 
@@ -341,33 +362,51 @@
 					rotation	: 0,
 					timestamp	: new Date(timestamp).toUTCString(),
 					type		: 'markers_stop',
-					vessel_id	: data.vessel_id,
+					vessel_id	: vessel_id,
 					zoom_limit	: 0 
 				}));
 			}
 
 			for(var key in init_test) {
 				if (init_test.hasOwnProperty(key)) {
-					init_test[key][data.vessel_id] = false;
+					init_test[key][vessel_id] = false;
 				}
 			}
 			return feature;
-		}	
+		}
 
-		function feature_init(features, limit, type){
+		function feature_init(features, limit, type, highlight){
+
+			// if(type == 'markers')
+			// console.log(type, features[0].get('opacity'))
+
 			var id = features[0].get('vessel_id');
-			var zoom = map.getView().getZoom();			
+			var zoom = map.getView().getZoom();
 			var i = 0, len = (features.length - 1);
 			if(zoom >= limit && init_test[type][id] === false){
+
+
+
+
 				for(i; i <= len; i++) {
-					vectorSource.addFeature(features[i]);
+					if(typeof highlight === 'undefined'){
+						vectorSource.addFeature(features[i]);						
+					} else if(highlight){
+						features[i].set('opacity', 1);						
+					} else if(!highlight){
+						var opacity = (type != 'markers')?((len-i)/(len*1.5/* buffer extra .5 for click-to-highlight */)).toFixed(2): 0.8;
+						features[i].set('opacity', opacity);	
+					}
 				}
+
+
+
 				init_test[type][id] = true;
 			} else if(zoom <= (limit-1) && init_test[type][id] === true){
 				for(i; i <= len; i++) {
 					vectorSource.removeFeature(features[i]);
 				}
-				init_test[type][id] = false;		
+				init_test[type][id] = false;
 			}
 		}
 
