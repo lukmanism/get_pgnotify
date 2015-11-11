@@ -55,7 +55,6 @@
 			$('#status').text("Disconnected");
 		});
 
-
 		var map = new ol.Map({
 			target: 'map',
 			layers: [
@@ -78,97 +77,6 @@
 		connect_api('https://localhost/test/socket-io/get_pgnotify/gettrails.php'); // init webservices
 		connect_api('https://localhost/test/socket-io/get_pgnotify/gettrails2.php', 'ais'); // init webservices
 
-//  Marker & Trail Layers Style
-
-		function get_style(feature, resolution){
-			var type = (typeof feature.get('data_type') === 'undefined')? feature.get('type'): feature.get('type') + '_ais';
-			var style;
-			switch(type){
-				case 'trails':
-				case 'trails_ais':
-					style = {
-						stroke: new ol.style.Stroke({
-							color: 'rgba('+ feature.get('color') +', '+ feature.get('opacity') + ')',
-							width: 0.5,
-							lineDash: [4,4]
-						})						
-					}
-				break;
-				case 'markers':
-					style = {
-						image: new ol.style.Icon(/** @type {olx.style.IconOptions} */ ({
-							anchor: [19, 32],
-							anchorXUnits: 'pixels',
-							anchorYUnits: 'pixels',
-							opacity: feature.get('opacity'),
-							src: 'images/marker.png',
-							snapToPixel: true,
-						}))
-					}				
-				break;
-				case 'markers_ais':
-					style = {
-						image: new ol.style.Circle({
-							radius: 6,
-							fill: new ol.style.Fill({
-								color: 'rgba(255,255,255,0.35)'
-							}),
-							stroke: new ol.style.Stroke({
-								color: 'rgba('+ feature.get('color') +', '+ feature.get('opacity') + ')',
-								width: 0.5,
-								lineDash: [2,2]
-							})
-						})
-					}
-				break;
-				case 'joints_ais':
-					style = {
-						image: new ol.style.Icon(/** @type {olx.style.IconOptions} */ ({
-							anchor: [12, 6],
-							anchorXUnits: 'pixels',
-							anchorYUnits: 'pixels',
-							opacity: feature.get('opacity'),
-							src: 'images/arrow_white.png',
-							rotation: feature.get('rotation'),
-							snapToPixel: true
-						}))
-					}	
-				break;
-				case 'joints':
-					style = {
-						image: new ol.style.Icon(/** @type {olx.style.IconOptions} */ ({
-							anchor: [12, 6],
-							anchorXUnits: 'pixels',
-							anchorYUnits: 'pixels',
-							opacity: feature.get('opacity'),
-							src: 'images/arrow.png',
-							rotation: feature.get('rotation'),
-							snapToPixel: true
-						}))
-					}	
-				break;
-				case 'markers_stop':
-				case 'markers_stop_ais':
-					style = {
-						image: new ol.style.RegularShape({
-							points: 3,
-							radius: 8,
-							fill: new ol.style.Fill({
-								color: 'rgba(255,255,255,0.35)'
-							}),
-							stroke: new ol.style.Stroke({
-								color: 'rgba('+ feature.get('color') +', '+ feature.get('opacity') + ')',
-								width: 0.5,
-								lineDash: [2,2]
-							})
-						})
-					}	
-				break;
-			}
-			style_cache[type] = new ol.style.Style(style);
-			return [style_cache[type]];
-		}
-
 //  Start PopPop
 
 		var element = $('#popup');
@@ -183,9 +91,9 @@
 				return feature;
 			});
 
-			if(selected_vessel_id > 0) {
-				features_onclick(selected_vessel_id, false); // reset feature highlight
-			}
+			// if(selected_vessel_id > 0) {
+				// features_onclick(selected_vessel_id, false); // reset feature highlight
+			// }
 			var vessel_id = (feature)? feature.get('vessel_id'): selected_vessel_id;
 			if(feature && (feature.get('type') != 'trails')){
 				features_onclick(feature.get('vessel_id'), true); // feature highlight
@@ -225,26 +133,6 @@
 			}
 		});
 
-		function features_onclick(vessel_id, active){
-			var vessel = vessels[vessel_id][0];
-			for(var key in vessel) {
-				if (vessel.hasOwnProperty(key) && vessel[key].length >= 1) {
-					init_test[key][vessel_id] = false;
-					feature_init(vessel[key], 0, key, active);
-				}
-			}			
-		}
-
-		function get_features(vessel_id){
-			for(var key in init_test) {
-				var vessel = vessels[vessel_id][0][key];
-				if (init_test.hasOwnProperty(key) && vessel.length >= 1) {
-					feature_init(vessel, vessel[0].get('zoom_limit'), vessel[0].get('type'));
-				}
-				// TODO: if(Object.keys(vessels[vessel_id]) >= 2)
-			}
-		}
-
 //  Methods
 		
 		function connect_api(url, data_type){
@@ -272,6 +160,95 @@
 			});
 		}
 
+		function feature_init(features, limit, type, highlight){
+			var id = features[0].get('vessel_id');
+			var zoom = map.getView().getZoom();
+			var i = 0, len = (features.length - 1);
+			if(zoom >= limit && init_test[type][id] === false){
+				for(i; i <= len; i++) {
+					if(typeof highlight === 'undefined'){
+						vectorSource.addFeature(features[i]);
+					} else if(highlight){
+						features[i].set('opacity', 1);
+					} else if(!highlight){
+						var opacity = 1;
+						switch(type){
+							case 'markers':
+								opacity = 0.8;
+							break;
+							case 'markers_ais':
+							case 'markers_stop':
+							case 'markers_stop_ais':
+								opacity = 0.2;
+							break;
+							default:
+								opacity = ((len-i)/(len*1.5/* buffer extra .5 for click-to-highlight */)).toFixed(2);
+							break;
+						}
+						features[i].set('opacity', opacity);
+					}
+				}
+				init_test[type][id] = true;
+			} else if(zoom <= (limit-1) && init_test[type][id] === true){
+				for(i; i <= len; i++) {
+					vectorSource.removeFeature(features[i]);
+				}
+				init_test[type][id] = false;
+			}
+		}
+
+		function features_onclick(vessel_id, active){
+			// TODO: debug missing one trail after reinit onclick
+			// TODO: AIS marker onclick opacity doesn't reset
+
+			var vessel = $.extend(true, {}, vessels[vessel_id][0]);
+			for(var key in vessel) {
+				if (vessel.hasOwnProperty(key) && vessel[key].length >= 1) {
+					init_test[key][vessel_id] = false;
+					feature_init(vessel[key], vessel[key][0].get('zoom_limit'), key, active);
+				}
+			}			
+		}
+
+		function get_features(vessel_id){
+			for(var key in init_test) {
+				var vessel = vessels[vessel_id][0][key];
+				if (init_test.hasOwnProperty(key) && vessel.length >= 1) {
+					feature_init(vessel, vessel[0].get('zoom_limit'), vessel[0].get('type'));
+				}
+				// TODO: if(Object.keys(vessels[vessel_id]) >= 2), ais vs inmarsat
+			}
+		}
+
+		function get_color() {
+			return (
+				Math.floor(Math.random() * 200) + ',' + 
+				Math.floor(Math.random() * 200) + ',' + 
+				Math.floor(Math.random() * 200)
+			);
+		}
+
+		function to_rad(x) {
+			return x * Math.PI / 180;
+		}
+
+		function spherical_cosinus(lat1, lon1, lat2, lon2) {
+			var R = 6371; // km
+			var dLon = to_rad(lon2 - lon1),
+			lat1 = to_rad(lat1),
+			lat2 = to_rad(lat2),
+			d = Math.acos(Math.sin(lat1)*Math.sin(lat2) + Math.cos(lat1)*Math.cos(lat2) * Math.cos(dLon)) * R;
+			return d;
+		}
+
+		function get_rotation(lat1, lon1, lat2, lon2){
+			var dx =  lat1 - lat2;
+			var dy =  lon1 - lon2;
+			return Math.atan2(dy, dx);
+		}	
+
+//  Marker & Trail Layers Style
+
 		function add_marker(data, color, set_distance, data_type){
 			var feature = {
 				joints: [],
@@ -297,13 +274,15 @@
 					var rotation = get_rotation(start.lat, start.lng, end.lat, end.lng);
 					var timestamp = (typeof data.attr[k][2] === 'object')? data.attr[k][2]['date'] : data.attr[k][2];
 
+
+					// console.log(k)
 					if(k === 0){
 						feature['markers'].push(new ol.Feature({
 							color		: color,
 							data_type	: data_type,
 							geometry	: new ol.geom.Point(ol.proj.fromLonLat([start.lng, start.lat])),
 							name		: data.name,
-							opacity		: 0.8,
+							opacity		: (typeof data_type == 'undefined')? 0.8: 0.5,
 							point		: ol.coordinate.toStringHDMS([start.lng, start.lat]),
 							rotation	: rotation,
 							timestamp	: new Date(timestamp).toUTCString(),
@@ -357,7 +336,7 @@
 					data_type	: data_type,
 					geometry	: new ol.geom.Point(ol.proj.fromLonLat([start.lng, start.lat])),
 					name		: data.name,
-					opacity		: 0.8,
+					opacity		: 0.5,
 					point		: ol.coordinate.toStringHDMS([start.lng, start.lat]),
 					rotation	: 0,
 					timestamp	: new Date(timestamp).toUTCString(),
@@ -375,56 +354,105 @@
 			return feature;
 		}
 
-		function feature_init(features, limit, type, highlight){
-			var id = features[0].get('vessel_id');
-			var zoom = map.getView().getZoom();
-			var i = 0, len = (features.length - 1);
-			if(zoom >= limit && init_test[type][id] === false){
-				for(i; i <= len; i++) {
-					if(typeof highlight === 'undefined'){
-						vectorSource.addFeature(features[i]);						
-					} else if(highlight){
-						features[i].set('opacity', 1);						
-					} else if(!highlight){
-						var opacity = (type != 'markers')?((len-i)/(len*1.5/* buffer extra .5 for click-to-highlight */)).toFixed(2): 0.8;
-						features[i].set('opacity', opacity);	
+		function get_style(feature, resolution){
+			var type = (typeof feature.get('data_type') === 'undefined')? feature.get('type'): feature.get('type') + '_ais';
+			var style;
+			switch(type){
+				case 'trails':
+					style = {
+						stroke: new ol.style.Stroke({
+							color: 'rgba('+ feature.get('color') +', '+ feature.get('opacity') + ')',
+							width: 0.5,
+							lineDash: [8,4]
+						})						
 					}
-				}
-				init_test[type][id] = true;
-			} else if(zoom <= (limit-1) && init_test[type][id] === true){
-				for(i; i <= len; i++) {
-					vectorSource.removeFeature(features[i]);
-				}
-				init_test[type][id] = false;
+				break;
+				case 'trails_ais':
+					style = {
+						stroke: new ol.style.Stroke({
+							color: 'rgba('+ feature.get('color') +', '+ feature.get('opacity') + ')',
+							width: 0.5,
+							lineDash: [4,4]
+						})						
+					}
+				break;
+				case 'joints_ais':
+					style = {
+						image: new ol.style.Icon(/** @type {olx.style.IconOptions} */ ({
+							anchor: [12, 6],
+							anchorXUnits: 'pixels',
+							anchorYUnits: 'pixels',
+							opacity: feature.get('opacity'),
+							src: 'images/arrow_white.png',
+							rotation: feature.get('rotation'),
+							snapToPixel: true
+						}))
+					}	
+				break;
+				case 'joints':
+					style = {
+						image: new ol.style.Icon(/** @type {olx.style.IconOptions} */ ({
+							anchor: [12, 6],
+							anchorXUnits: 'pixels',
+							anchorYUnits: 'pixels',
+							opacity: feature.get('opacity'),
+							src: 'images/arrow.png',
+							rotation: feature.get('rotation'),
+							snapToPixel: true
+						}))
+					}	
+				break;
+				case 'markers':
+					style = {
+						image: new ol.style.Icon(/** @type {olx.style.IconOptions} */ ({
+							anchor: [19, 32],
+							anchorXUnits: 'pixels',
+							anchorYUnits: 'pixels',
+							opacity: feature.get('opacity'),
+							src: 'images/marker.png',
+							snapToPixel: true,
+						}))
+					}				
+				break;
+				case 'markers_ais':
+				// console.log('markers_ais', feature.get('opacity'))
+					style = {
+						image: new ol.style.RegularShape({
+							points: 3,
+							radius: 8,
+							fill: new ol.style.Fill({
+								color: 'rgba(255,255,255, '+ feature.get('opacity') + ')'
+							}),
+							stroke: new ol.style.Stroke({
+								color: 'rgba('+ feature.get('color') +', '+ feature.get('opacity') + ')',
+								width: 0.5,
+								lineDash: [1,1]
+							}),
+							rotation: feature.get('rotation')
+						})
+					}	
+				break;
+				case 'markers_stop':
+				case 'markers_stop_ais':
+				// console.log('markers_stop_ais', feature.get('opacity'))
+					style = {
+						image: new ol.style.Circle({
+							radius: 6,
+							fill: new ol.style.Fill({
+								color: 'rgba(255,255,255, '+ feature.get('opacity') + ')'
+							}),
+							stroke: new ol.style.Stroke({
+								color: 'rgba('+ feature.get('color') +', '+ feature.get('opacity') + ')',
+								width: 0.5,
+								lineDash: [2,2]
+							})
+						})
+					}
+				break;
 			}
+			style_cache[type] = new ol.style.Style(style);
+			return [style_cache[type]];
 		}
-
-		function get_color() {
-			return (
-				Math.floor(Math.random() * 200) + ',' + 
-				Math.floor(Math.random() * 200) + ',' + 
-				Math.floor(Math.random() * 200)
-			);
-		}
-
-		function to_rad(x) {
-			return x * Math.PI / 180;
-		}
-
-		function spherical_cosinus(lat1, lon1, lat2, lon2) {
-			var R = 6371; // km
-			var dLon = to_rad(lon2 - lon1),
-			lat1 = to_rad(lat1),
-			lat2 = to_rad(lat2),
-			d = Math.acos(Math.sin(lat1)*Math.sin(lat2) + Math.cos(lat1)*Math.cos(lat2) * Math.cos(dLon)) * R;
-			return d;
-		}
-
-		function get_rotation(lat1, lon1, lat2, lon2){
-			var dx =  lat1 - lat2;
-			var dy =  lon1 - lon2;
-			return Math.atan2(dy, dx);
-		}	
 		
 	</script>
 
