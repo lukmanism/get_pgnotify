@@ -70,7 +70,7 @@
 			{
 				url: 'https://localhost/test/socket-io/get_pgnotify/gettrails2.php',
 				type: 'ais',
-				style: 'vector', // vector, cluster
+				style: 'cluster', // vector, cluster
 				zoom_limit: {
 					joints: 10,
 					trails: 7
@@ -188,7 +188,7 @@
 						if (cache['init_test'].hasOwnProperty(key) && temp[key].length >= 1) {
 							feature_init(
 								temp[key], 	// features
-								false, 		// highlight
+								'init', 	// action
 								ws['style'] // style
 							);
 						}
@@ -197,7 +197,7 @@
 			});
 		}
 
-		function feature_init(features, highlight, style){
+		function feature_init(features, action, style){
 			var id 		= features[0].get('vessel_id');
 			var limit 	= features[0].get('zoom_limit');
 			var type 	= features[0].get('type');
@@ -206,32 +206,32 @@
 			var i = 0, len = (features.length - 1);
 			var source = (typeof style != 'undefined')? cache['source'][style]: cache['source']['vector'];
 
+
 			if(zoom >= limit && cache['init_test'][type][id] === false){
+// console.log(action, style, features[0].get('vessel_id'), len)
+
+
 				for(i; i <= len; i++) {
 
-
-					if(!highlight && style != ''){
-						source.addFeature(features[i]);
-					} else if(highlight){
-						features[i].set('opacity', 1);
-					} else if(!highlight){
-						var opacity = 1;
-						switch(type){
-							case 'markers':
+					switch(action){ // init, reset, highlight
+						case 'init':
+							source.addFeature(features[i]);
+						break;
+						case 'reset':
+							var opacity = 0;
+							if(type === 'markers')
 								opacity = 0.8;
-							break;
-							case 'markers_ais':
-							case 'markers_stop':
-							case 'markers_stop_ais':
+							else if(type === 'markers_ais' || type === 'markers_stop' || type === 'markers_stop_ais')
 								opacity = 0.2;
-							break;
-							default:
+							else
 								opacity = ((len-i)/(len*1.5/* buffer extra .5 for click-to-highlight */)).toFixed(2);
-							break;
-						}
-						features[i].set('opacity', opacity);
-					}
 
+							features[i].set('opacity', opacity);
+						break;
+						case 'highlight':
+							features[i].set('opacity', 1);
+						break;
+					}
 
 				}
 				cache['init_test'][type][id] = true;
@@ -247,11 +247,11 @@
 			var zoom = map.getView().getZoom();
 			var vessel = cache['vessels'][vessel_id][0];
 			var test = (typeof vessel['markers'][0] != 'undefined')? vessel['markers'][0]: vessel['markers_stop'][0];
-			if(test.get('style') !== 'cluster' && zoom >= 8){ // Cluster need no reinit
+			if(test.get('style') !== 'cluster'){ // Cluster need no reinit
 				for(var key in cache['init_test']) {
 					if (cache['init_test'].hasOwnProperty(key) && vessel[key].length >= 1) {
 						var style = (zoom >= 8)? 'vector': vessel[key][0].get('style');
-						feature_init(vessel[key], false, style);
+						feature_init(vessel[key], 'init', style);
 					}
 					// TODO: if(Object.keys(cache['vessels'][vessel_id]) >= 2), ais vs inmarsat
 				}				
@@ -261,7 +261,7 @@
 		function marker_popup(vessel, popup, active){
 			var vessel_id = (!vessel)? 0 : vessel.get('vessel_id');
 			if(active){ // On
-				features_onclick(vessel_id, true, vessel.get('style')); // feature highlight
+				features_onclick(vessel_id, 'highlight', vessel.get('style')); // feature highlight
 
 				var geometry 	= vessel.getGeometry();
 				var coord 		= geometry.getCoordinates();
@@ -290,8 +290,8 @@
 				element.popover('destroy');
 
 				if(cache['selected']['vessel_id'] > 0) { // cluster/markers clicked
-					if(cache['selected']['vessel_id'] === 'vector') // only reinit vector style
-					features_onclick(cache['selected']['vessel_id'], false, cache['selected']['style']); // reset feature highlight
+					// if(cache['selected']['style'] === 'vector') // only reinit vector style
+						features_onclick(cache['selected']['vessel_id'], 'reset', cache['selected']['style']); // reset feature highlight
 
 					cache['selected'] = {
 						vessel_id: 0,
@@ -301,7 +301,7 @@
 			}
 		}
 
-		function features_onclick(vessel_id, active, style){
+		function features_onclick(vessel_id, action, style){
 			// TODO: debug missing one trail after reinit onclick
 			// TODO: AIS marker onclick opacity doesn't reset
 			// TODO: reset previous marker's opacity after another marker clicked
@@ -309,7 +309,7 @@
 			for(var key in vessel) {
 				if (vessel.hasOwnProperty(key) && vessel[key].length >= 1) {
 					cache['init_test'][key][vessel_id] = false;
-					feature_init(vessel[key], active, style);
+					feature_init(vessel[key], action, style);
 				}
 			}			
 		}
