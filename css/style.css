@@ -12,3 +12,19 @@ form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 
 .fade.in {
 	opacity: 0.7;
 }
+#status {
+	position: absolute;
+	top: 20px;
+	right: 20px;
+	z-index: 99;
+	height: 16px;
+	width: 16px;
+	border-radius: 8px;
+	overflow: hidden;
+}
+#status.connect {
+	background-color: #5cb85c;
+}
+#status.disconnect {
+	background-color: #f0ad4e;
+}
