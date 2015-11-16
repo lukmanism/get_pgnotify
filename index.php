@@ -15,17 +15,13 @@
 </head>
 <body>
 
-	<!-- <div class="container"> -->
-		<header></header>
-		<!-- <div class="main"> -->
-			<div id="map" class="map"><div id="popup"></div></div>
-			<div class="">
-				<h4>Status: <span id="status">Disconnected</span></h4>
-				<ul id="messages"></ul>
-			</div>
-		<!-- </div> -->
-		<footer></footer>
-	<!-- </div> -->
+	<div id="map" class="map">
+		<div id="popup"></div>
+		<span id="status" class="disconnect"></span>
+	</div>
+	<div class="">
+		<ul id="messages"></ul>
+	</div>
 
 	<script src="bower_components/jquery/dist/jquery.js"></script>
 	<script src="bower_components/bootstrap/dist/js/bootstrap.js"></script>
@@ -70,7 +66,7 @@
 			{
 				url: 'https://localhost/test/socket-io/get_pgnotify/gettrails2.php',
 				type: 'ais',
-				style: 'cluster', // vector, cluster
+				style: 'vector', // vector, cluster
 				zoom_limit: {
 					joints: 10,
 					trails: 7
@@ -80,15 +76,17 @@
 
 //  Map init
 
-		// var socket = io.connect('http://localhost:3000');
-		// socket.on('pg notify', function(msg){
-		// 	connect_api('https://localhost/test/socket-io/get_pgnotify/gettrails.php', ''); // init webservices
-		// 	connect_api('https://localhost/test/socket-io/get_pgnotify/gettrails2.php', '_ais');
-		// }).on('connect', function() {
-		// 	$('#status').text("Connected");
-		// }).on('disconnect', function() {
-		// 	$('#status').text("Disconnected");
-		// });
+		var socket = io.connect('http://localhost:3000');
+		socket.on('pg notify', function(msg){
+			connect_api('https://localhost/test/socket-io/get_pgnotify/gettrails.php', ''); // init webservices
+			connect_api('https://localhost/test/socket-io/get_pgnotify/gettrails2.php', '_ais');
+		}).on('connect', function() {
+			// $('#status').text("Connected");
+			$('#status').removeClass("disconnect").addClass("connect");
+		}).on('disconnect', function() {
+			// $('#status').text("Disconnected");
+			$('#status').removeClass("connect").className("disconnect");
+		});
 
 		var map = new ol.Map({
 			target: 'map',
@@ -173,16 +171,15 @@
 			$.ajax({
 				url: ws['url']
 			}).done(function(data){
-				// vectorSource.clear();
-				var datas = $.parseJSON(data);
-				var i = 0, len = datas.length;
+				var get_datas = $.parseJSON(data);
+				var i = 0, len = get_datas.length;
 				for(i; i < len; i++) {
 
-					var temp = add_marker(datas[i], ws);
-					if(typeof cache['vessels'][datas[i]['vessel_id']] === 'undefined'){
-						cache['vessels'][datas[i]['vessel_id']] = [temp];
+					var temp = add_marker(get_datas[i], ws);
+					if(typeof cache['vessels'][get_datas[i]['vessel_id']] === 'undefined'){
+						cache['vessels'][get_datas[i]['vessel_id']] = [temp];
 					} else {
-						cache['vessels'][datas[i]['vessel_id']].push(temp); // captures duplication from two different webservice if availables
+						cache['vessels'][get_datas[i]['vessel_id']].push(temp); // captures duplication from two different webservice if availables
 					}
 					for(var key in cache['init_test']) {
 						if (cache['init_test'].hasOwnProperty(key) && temp[key].length >= 1) {
@@ -203,36 +200,29 @@
 			var type 	= features[0].get('type');
 
 			var zoom = map.getView().getZoom();
-			var i = 0, len = (features.length - 1);
+			var i = 0, len = features.length - 1;
 			var source = (typeof style != 'undefined')? cache['source'][style]: cache['source']['vector'];
 
-
 			if(zoom >= limit && cache['init_test'][type][id] === false){
-// console.log(action, style, features[0].get('vessel_id'), len)
-
-
 				for(i; i <= len; i++) {
-
 					switch(action){ // init, reset, highlight
 						case 'init':
 							source.addFeature(features[i]);
 						break;
 						case 'reset':
 							var opacity = 0;
-							if(type === 'markers')
+							if(type === 'markers' && features[0].get('data_type') !== 'ais')
 								opacity = 0.8;
-							else if(type === 'markers_ais' || type === 'markers_stop' || type === 'markers_stop_ais')
+							else if(type === 'markers')
 								opacity = 0.2;
 							else
-								opacity = ((len-i)/(len*1.5/* buffer extra .5 for click-to-highlight */)).toFixed(2);
-
+								opacity = (((len+1)-i)/((len+1)*1.5/* buffer extra .5 for click-to-highlight */)).toFixed(2);
 							features[i].set('opacity', opacity);
 						break;
 						case 'highlight':
 							features[i].set('opacity', 1);
 						break;
 					}
-
 				}
 				cache['init_test'][type][id] = true;
 			} else if(zoom <= (limit-1) && cache['init_test'][type][id] === true){
@@ -302,9 +292,6 @@
 		}
 
 		function features_onclick(vessel_id, action, style){
-			// TODO: debug missing one trail after reinit onclick
-			// TODO: AIS marker onclick opacity doesn't reset
-			// TODO: reset previous marker's opacity after another marker clicked
 			var vessel = cache['vessels'][vessel_id][0];
 			for(var key in vessel) {
 				if (vessel.hasOwnProperty(key) && vessel[key].length >= 1) {
@@ -324,12 +311,12 @@
 				joints: [],
 				trails: [],
 				markers: [],
-				markers_stop: [],
+				markers_stop: []
 			};
 			var vessel_id = parseFloat(data.vessel_id);
-
 			if(data.trails.length >= 2){ // Vessels with more than one trail update will have trail lines.
 				var k = 0, len = (data.trails.length - 1);
+
 				for(k; k < len; k++) {
 					var opacity = ((len-k)/(len*1.5/* buffer extra .5 for click-to-highlight */)).toFixed(2);
 					var start = {
